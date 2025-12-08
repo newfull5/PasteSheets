@@ -28,7 +28,7 @@ pub fn get_clipboard_text() -> Option<String> {
     }
 }
 
-pub fn monitor_clipboard(db_path: String) {
+pub fn monitor_clipboard() {
     thread::spawn(move || {
         let last_content = Arc::new(Mutex::new(String::new()));
         info!("Monitoring clipboard...");
