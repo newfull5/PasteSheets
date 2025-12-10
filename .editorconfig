@@ -1,0 +1,54 @@
+# EditorConfig for Rust projects
+# Check http://editorconfig.org for more information
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Rust source files - 4 spaces (Rust standard)
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# TOML files (Cargo.toml, etc.) - 2 or 4 spaces
+[*.toml]
+indent_style = space
+indent_size = 2
+
+# JavaScript/TypeScript (for Tauri frontend)
+[*.{js,ts,jsx,tsx}]
+indent_style = space
+indent_size = 2
+
+# HTML/CSS (for Tauri frontend)
+[*.{html,css,scss}]
+indent_style = space
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+
+# YAML files
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown files - don't trim trailing whitespace (2 spaces = line break)
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+# Makefiles require tabs
+[Makefile]
+indent_style = tab
+
+# Diff/Patch files - preserve formatting
+[*.{diff,patch}]
+trim_trailing_whitespace = false
