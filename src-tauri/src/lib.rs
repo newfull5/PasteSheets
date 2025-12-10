@@ -5,6 +5,7 @@ mod modules;
 use log::{debug, error, info};
 use modules::clipboard;
 use modules::db;
+use modules::hotkey;
 
 #[tauri::command]
 fn get_clipboard_history() -> Result<Vec<String>, String> {
@@ -14,6 +15,11 @@ fn get_clipboard_history() -> Result<Vec<String>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(hotkey::handle_shortcut)
+                .build(),
+        )
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -30,6 +36,10 @@ pub fn run() {
 
             clipboard::monitor_clipboard();
             info!("Clipboard monitoring started");
+
+            hotkey::setup_global_hotkey(app.handle().clone())?;
+
+            info!("Global hotkey setup completed");
 
             Ok(())
         })
