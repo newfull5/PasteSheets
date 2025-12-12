@@ -34,7 +34,7 @@ pub fn monitor_clipboard() {
         info!("Monitoring clipboard...");
 
         loop {
-            thread::sleep(Duration::from_millis(1000));
+            thread::sleep(Duration::from_millis(4000));
 
             if let Some(current_text) = get_clipboard_text() {
                 let mut last = last_content.lock().unwrap();

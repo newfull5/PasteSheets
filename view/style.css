@@ -1,130 +1,204 @@
-/* view/style.css */
+/* style.css */
+
+:root {
+  /* 색상 팔레트 정의 */
+  --bg-app: #0e1525;
+  /* 앱 배경 (짙은 남색) */
+  --accent: #c3e88d;
+  /* 형광 연두색 포인트 */
+  --text-main: #ffffff;
+  /* 흰색 텍스트 */
+  --text-sub: #68748d;
+  /* 회색 서브 텍스트 */
+  --item-hover: rgba(255, 255, 255, 0.08);
+}
+html {
+  background: transparent;
+}
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: transparent;
     min-height: 100vh;
     padding: 20px;
 }
 
+/* 메인 컨테이너 (앱 창) */
 .container {
-    max-width: 800px;
-    margin: 0 auto;
+  width: 650px;
+  max-height: 80vh;
+  background-color: var(--bg-app);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
 }
 
+/* 헤더 영역 */
 h1 {
-    color: white;
-    margin-bottom: 10px;
-    font-size: 32px;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  color: var(--accent);
+  font-size: 24px;
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+
+/* 커서 느낌을 주기 위한 가상 요소 (선택사항) */
+h1::after {
+  content: '|';
+  color: var(--accent);
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 .subtitle {
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 30px;
-    font-size: 16px;
+  color: var(--text-sub);
+  font-size: 13px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 컨트롤 버튼 영역 */
 .controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 15px;
 }
 
 button {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+  background: transparent;
+  color: var(--text-sub);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 button:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
-}
-
-#history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.history-item {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.history-item:hover {
-    background: white;
-    transform: translateX(5px);
-    border-color: rgba(102, 126, 234, 0.3);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.history-item:active {
-    transform: scale(0.98);
-}
-
-.item-content {
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 8px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.item-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: #999;
-}
-
-.item-index {
-    color: #667eea;
-    font-weight: 600;
-}
-
-.empty-state {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 40px;
-    text-align: center;
-    color: white;
-}
-
-.empty-state h3 {
-    margin-bottom: 10px;
-    font-size: 20px;
+  color: var(--text-main);
+  border-color: var(--text-sub);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .count {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 8px 16px;
-    border-radius: 20px;
-    color: white;
-    font-size: 14px;
-    display: inline-block;
-    margin-bottom: 20px;
+  display: none;
+  /* 심플함을 위해 카운트는 숨김 (필요시 삭제) */
+}
+
+/* 리스트 영역 */
+#history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* 스크롤바 커스텀 */
+#history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+#history-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+/* 개별 아이템 스타일 */
+.history-item {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border-radius: 6px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border: none;
+  /* 기존 border 제거 */
+  position: relative;
+}
+
+.history-item:hover,
+.history-item.selected {
+  background-color: var(--item-hover);
+}
+
+/* 왼쪽 네온 바 (Bar) 아이콘 효과 */
+.history-item::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 18px;
+  background-color: var(--accent);
+  margin-right: 15px;
+  border-radius: 2px;
+  opacity: 0.3;
+  /* 평소엔 흐리게 */
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transition: all 0.2s;
+}
+
+/* 호버 시 네온 바가 밝아짐 */
+.history-item:hover::before,
+.history-item.selected::before {
+  opacity: 1;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* 텍스트 내용 */
+.item-content {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* 우측 메타 정보 (단축키 처럼 보이게) */
+.item-meta {
+  margin-left: 15px;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-family: monospace;
+  opacity: 0.6;
+}
+
+.item-index {
+  color: var(--text-sub);
+  font-weight: normal;
+}
+
+.empty-state {
+  color: var(--text-sub);
+  text-align: center;
+  padding: 40px 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
 }

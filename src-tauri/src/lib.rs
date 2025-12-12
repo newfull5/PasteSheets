@@ -3,6 +3,7 @@
 mod modules;
 
 use log::{debug, error, info};
+use tauri::Manager;
 use modules::clipboard;
 use modules::db;
 use modules::hotkey;
@@ -11,6 +12,7 @@ use modules::hotkey;
 fn get_clipboard_history() -> Result<Vec<String>, String> {
     db::get_all_contents().map_err(|e| e.to_string())
 }
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

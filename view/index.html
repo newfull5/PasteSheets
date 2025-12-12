@@ -2,28 +2,33 @@
 <html lang="ko">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PasteSheet - 클립보드 히스토리</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PasteSheet - 클립보드 히스토리</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
+
 <body>
-    <div class="container">
-        <h1>📋 PasteSheet</h1>
-        <p class="subtitle">클립보드 히스토리</p>
+  <div class="container">
+    <h1>📋 PasteSheet</h1>
+    <div class="controls">
+      <button onclick="loadHistory()">새로고침</button>
+      <button onclick="clearAll()">전체 삭제</button>
+    </div>
+    <p class="subtitle">클립보드 히스토리</p>
 
-        <div class="count" id="count">로딩 중...</div>
+    <div class="count" id="count">로딩 중...</div>
 
-        <div class="controls">
-            <button onclick="loadHistory()">🔄 새로고침</button>
-            <button onclick="clearAll()">🗑️ 전체 삭제</button>
-        </div>
-
-        <div id="history-list"></div>
+    <div class="controls">
+      <button onclick="loadHistory()">🔄 새로고침</button>
+      <button onclick="clearAll()">🗑️ 전체 삭제</button>
     </div>
 
-    <script src="script.js"></script>
+    <div id="history-list"></div>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 
 </html>

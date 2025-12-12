@@ -11,7 +11,11 @@ pub fn setup_global_hotkey<R: Runtime>(
 
     // 여기서는 “어떤 조합의 키를 쓸지”만 깔끔하게 나열
     gs.register("CommandOrControl+Shift+V")?;
-    gs.register("Enter")?;
+//     gs.register("Enter")?;
+//     gs.register("ArrowUp")?;
+//     gs.register("ArrowDown")?;
+//     gs.register("ArrowLeft")?;
+//     gs.register("ArrowRight")?;
 
     Ok(())
 }
@@ -27,10 +31,26 @@ pub fn handle_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &Shortcut, even
         Code::KeyV => {
             toggle_main_window(app);
         }
-
-        Code::Enter => {
-            toggle_something_else(app);
-        }
+//
+//         Code::Enter => {
+//             toggle_something_else(app);
+//         }
+//
+//         Code::ArrowRight => {
+//             toggle_something_else(app);
+//         }
+//
+//         Code::ArrowUp => {
+//             toggle_something_else(app);
+//         }
+//
+//         Code::ArrowDown => {
+//             toggle_something_else(app);
+//         }
+//
+//         Code::ArrowLeft => {
+//             toggle_something_else(app);
+//         }
         _ => {}
     }
 }
