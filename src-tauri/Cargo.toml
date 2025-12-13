@@ -25,6 +25,7 @@ tauri-plugin-global-shortcut = "2.0"
 rusqlite = { version = "0.32", features = ["bundled"] }
 log = "0.4"
 dirs = "5.0"
-tauri = { version = "2.9.4", features = [] }
+tauri = { version = "2.9.4", features = ["macos-private-api"] }
+enigo = "0.6.1"
 tauri-plugin-log = "2"
 

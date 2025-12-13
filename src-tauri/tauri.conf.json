@@ -8,17 +8,17 @@
   },
   "app": {
     "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "PasteSheet",
-        "width": 600,
-        "height": 400,
-        "resizable": false,
+        "width": 410,
+        "height": 800,
+        "resizable": true,
         "fullscreen": false,
-        "decorations": false,
+        "decorations": true,
         "transparent": true,
-        "shadow": false,
-        "backgroundColor": "#00000000"
+        "shadow": false
       }
     ],
     "security": {

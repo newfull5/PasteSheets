@@ -1,19 +1,17 @@
+
 /* style.css */
 
 :root {
   /* 색상 팔레트 정의 */
   --bg-app: #0e1525;
   /* 앱 배경 (짙은 남색) */
-  --accent: #c3e88d;
+  --accent: rgb(220, 220, 87);
   /* 형광 연두색 포인트 */
   --text-main: #ffffff;
   /* 흰색 텍스트 */
   --text-sub: #68748d;
   /* 회색 서브 텍스트 */
   --item-hover: rgba(255, 255, 255, 0.08);
-}
-html {
-  background: transparent;
 }
 
 * {
@@ -22,36 +20,41 @@ html {
   box-sizing: border-box;
 }
 
+html,
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: transparent;
-    min-height: 100vh;
-    padding: 20px;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  padding: 5px;
 }
 
 /* 메인 컨테이너 (앱 창) */
 .container {
-  width: 650px;
+  width: 400px;
   max-height: 80vh;
-  background-color: var(--bg-app);
+  background-color: rgba(18, 18, 18, 0.85);
   border-radius: 12px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 12px;
   overflow: hidden;
 }
 
 /* 헤더 영역 */
 h1 {
   color: var(--accent);
-  font-size: 24px;
+  font-size: 18px;
   margin-bottom: 5px;
   font-weight: 500;
   letter-spacing: -0.5px;
 }
 
-/* 커서 느낌을 주기 위한 가상 요소 (선택사항) */
+/* 커서 느낌을 주기 위한 가상 요소 */
 h1::after {
   content: '|';
   color: var(--accent);
@@ -63,14 +66,6 @@ h1::after {
   50% {
     opacity: 0;
   }
-}
-
-.subtitle {
-  color: var(--text-sub);
-  font-size: 13px;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* 컨트롤 버튼 영역 */
@@ -98,18 +93,13 @@ button:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.count {
-  display: none;
-  /* 심플함을 위해 카운트는 숨김 (필요시 삭제) */
-}
-
 /* 리스트 영역 */
 #history-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
-  padding-right: 5px;
+  padding-right: 1px;
 }
 
 /* 스크롤바 커스텀 */
@@ -128,11 +118,9 @@ button:hover {
   align-items: center;
   background: transparent;
   border-radius: 6px;
-  padding: 12px 16px;
+  padding: 12px 12px;
   cursor: pointer;
   transition: background 0.1s;
-  border: none;
-  /* 기존 border 제거 */
   position: relative;
 }
 
@@ -151,7 +139,6 @@ button:hover {
   margin-right: 15px;
   border-radius: 2px;
   opacity: 0.3;
-  /* 평소엔 흐리게 */
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transition: all 0.2s;
 }
@@ -175,7 +162,7 @@ button:hover {
   font-weight: 400;
 }
 
-/* 우측 메타 정보 (단축키 처럼 보이게) */
+/* 우측 메타 정보 */
 .item-meta {
   margin-left: 15px;
   color: var(--text-sub);
@@ -184,21 +171,8 @@ button:hover {
   opacity: 0.6;
 }
 
-.item-index {
-  color: var(--text-sub);
-  font-weight: normal;
-}
-
 .empty-state {
   color: var(--text-sub);
   text-align: center;
   padding: 40px 0;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
 }

@@ -21,11 +21,31 @@ async function loadHistory() {
     return;
   }
 
+
+
   try {
     const history = await invoke('get_clipboard_history');
     console.log('📋 히스토리:', history);
+
+    // 1. 화면에 리스트 그리기 (이때 기존 DOM이 사라지고 새로 그려짐)
     displayHistory(history);
-    selectedIndex = -1;
+
+    if (history.length > 0) {
+      // 앱이 처음 켜져서 선택된 게 없으면(-1), 첫 번째(0번)를 선택
+      if (selectedIndex === -1) {
+        selectedIndex = 0;
+      }
+
+      // 혹시라도 선택된 인덱스가 전체 개수보다 크면(아이템이 삭제된 경우 등) 0번으로 복구
+      if (selectedIndex >= history.length) {
+        selectedIndex = 0;
+      }
+    } else {
+      selectedIndex = -1;
+    }
+
+    updateSelection();
+
   } catch (error) {
     console.error('❌ 히스토리 로드 실패:', error);
   }
@@ -52,7 +72,6 @@ function displayHistory(items) {
       <div class="item-content">${escapeHtml(content)}</div>
       <div class="item-meta">
         <span class="item-index">#${items.length - index}</span>
-        <span>클릭하여 복사</span>
       </div>
     </div>
   `).join('');
@@ -70,7 +89,7 @@ function updateSelection() {
 
   if (selectedIndex >= 0 && selectedIndex < items.length) {
     items[selectedIndex].classList.add('selected');
-    items[selectedIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest'});
+    items[selectedIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
 
@@ -134,6 +153,11 @@ window.addEventListener('keydown', (event) => {
 
       case 'ArrowDown':
         console.log('ArrowDown pressed');
+        event.preventDefault();
+        if (totalItems > 0) {
+          selectedIndex = selectedIndex >= totalItems - 1 ? 0 : selectedIndex + 1;
+          updateSelection();
+        }
         break;
       case 'ArrowLeft':
         console.log('ArrowLeft pressed');

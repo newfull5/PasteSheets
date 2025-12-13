@@ -1,4 +1,8 @@
 use arboard::Clipboard;
+use enigo::{
+    Direction::{Click, Press, Release},
+    Enigo, Key, Settings,
+};
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -54,4 +58,50 @@ pub fn monitor_clipboard() {
             }
         }
     });
+}
+
+pub fn paste_text(text: String) -> Result<(), String> {
+    let mut clipboard =
+        Clipboard::new().map_err(|e| format!("Failed to create clipboard: {:?}", e))?;
+    clipboard
+        .set_text(text)
+        .map_err(|e| format!("Failed to set clipboard text: {:?}", e))?;
+
+    info!("Text copied to clipbaord");
+
+    let settings = Settings::default();
+    let mut enigo: Enigo =
+        Enigo::new(&settings).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    #[cfg(target_os = "macos")]
+    {
+        use enigo::Keyboard;
+
+        enigo
+            .key(Key::Meta, Press)
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+        enigo
+            .key(Key::Unicode('v'), Click)
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+        enigo
+            .key(Key::Meta, Release)
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        enigo
+            .key_down(Key::Control)
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+        enigo
+            .key_click(Key::Layout('v'))
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+        enigo
+            .key_up(Key::Control)
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+    }
+
+    info!("paste key simulated");
+
+    Ok(())
 }

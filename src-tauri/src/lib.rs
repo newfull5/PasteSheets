@@ -3,16 +3,20 @@
 mod modules;
 
 use log::{debug, error, info};
-use tauri::Manager;
 use modules::clipboard;
 use modules::db;
 use modules::hotkey;
+use tauri::Manager;
 
 #[tauri::command]
 fn get_clipboard_history() -> Result<Vec<String>, String> {
     db::get_all_contents().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn paste_text(text: String) -> Result<(), String> {
+    clipboard::paste_text(text)
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -45,7 +49,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_clipboard_history])
+        .invoke_handler(tauri::generate_handler![get_clipboard_history, paste_text])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
