@@ -1,5 +1,10 @@
 use crate::modules::db;
+use crate::modules::hotkey::restore_prev_app;
 use arboard::Clipboard;
+use enigo::{
+    Direction::{Click, Press, Release},
+    Enigo, Key, Keyboard,
+};
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -63,6 +68,25 @@ pub fn paste_text(text: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to set clipboard text: {:?}", e))?;
 
     info!("Text copied to clipbaord");
+
+    restore_prev_app();
+
+    #[cfg(target_os = "macos")]
+    {
+        let settings = enigo::Settings::default();
+        let mut enigo =
+            Enigo::new(&settings).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+        enigo
+            .key(Key::Meta, Press)
+            .map_err(|e| format!("Meta press failed: {:?}", e))?;
+        enigo
+            .key(Key::Unicode('v'), Click)
+            .map_err(|e| format!("v click failed: {:?}", e))?;
+        enigo
+            .key(Key::Meta, Release)
+            .map_err(|e| format!("Meta release failed: {:?}", e))?;
+    }
 
     Ok(())
 }

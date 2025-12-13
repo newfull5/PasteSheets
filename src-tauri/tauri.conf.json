@@ -21,7 +21,7 @@
         "shadow": false,
         "alwaysOnTop": true,
         "visible": true,
-        "focus": false
+        "focus": true
       }
     ],
     "security": {
