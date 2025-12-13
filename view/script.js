@@ -21,8 +21,6 @@ async function loadHistory() {
     return;
   }
 
-
-
   try {
     const history = await invoke('get_clipboard_history');
     console.log('📋 히스토리:', history);

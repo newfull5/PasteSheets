@@ -10,12 +10,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-pub fn get_clipboard() -> String {
-    let mut clipboard = Clipboard::new().unwrap();
-    let text = clipboard.get_text().unwrap();
-    text
-}
-
 pub fn get_clipboard_text() -> Option<String> {
     match Clipboard::new() {
         Ok(mut clipboard) => match clipboard.get_text() {

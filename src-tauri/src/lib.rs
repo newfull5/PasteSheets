@@ -6,7 +6,6 @@ use log::{debug, error, info};
 use modules::clipboard;
 use modules::db;
 use modules::hotkey;
-use tauri::Manager;
 
 #[tauri::command]
 fn get_clipboard_history() -> Result<Vec<String>, String> {
@@ -34,6 +33,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            hotkey::save_current_app_bundle_id();
 
             let _conn = db::init_db().expect("Failed to initialize database");
             info!("Database initialized");

@@ -1,4 +1,6 @@
 use log::{debug, info};
+use std::thread;
+use std::time::Duration;
 use std::{process::Command, sync::OnceLock};
 use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_global_shortcut::{
@@ -14,11 +16,6 @@ pub fn setup_global_hotkey<R: Runtime>(
 
     // 여기서는 “어떤 조합의 키를 쓸지”만 깔끔하게 나열
     gs.register("CommandOrControl+Shift+V")?;
-    //     gs.register("Enter")?;
-    //     gs.register("ArrowUp")?;
-    //     gs.register("ArrowDown")?;
-    //     gs.register("ArrowLeft")?;
-    //     gs.register("ArrowRight")?;
 
     Ok(())
 }
@@ -34,12 +31,15 @@ fn get_current_app_bundle_id() -> Option<String> {
             end try
         end tell
     "#;
+    thread::sleep(Duration::from_millis(100));
 
     let output = Command::new("osascript")
         .arg("-e")
         .arg(script)
         .output()
         .ok()?;
+
+    thread::sleep(Duration::from_millis(100));
 
     let raw = String::from_utf8_lossy(&output.stdout);
     debug!("Current app bundle ID detected: {:?}", raw);
@@ -56,7 +56,7 @@ fn get_current_app_bundle_id() -> Option<String> {
     }
 }
 
-fn save_current_app_bundle_id() {
+pub fn save_current_app_bundle_id() {
     if let Some(bundle_id) = get_current_app_bundle_id() {
         let _ = PREV_APP_BUNDLE_ID.set(bundle_id.clone());
         info!("✅ Previous app saved: {}", bundle_id);
@@ -97,7 +97,6 @@ pub fn handle_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &Shortcut, even
         //
         Code::Enter => {
             save_current_app_bundle_id();
-            toggle_something_else(app);
         }
         _ => {}
     }
@@ -114,10 +113,4 @@ fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
             debug!("Window shown");
         }
     }
-}
-
-// 예시용: CommandOrControl+Shift+T 에서 실행할 다른 기능
-fn toggle_something_else<R: Runtime>(app: &AppHandle<R>) {
-    // TODO: 여기에 원하는 동작 넣기 (예: 다른 창 열기, NOTIFY 보내기 등)
-    debug!("Enter hotkey pressed → do something else");
 }
