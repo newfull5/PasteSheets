@@ -167,6 +167,15 @@ window.addEventListener('keydown', (event) => {
         break;
       case 'Enter':
         console.log('Enter pressed');
+        event.preventDefault();
+        event.stopPropagation();
+        const items = document.querySelectorAll('.history-item');
+        if (items[selectedIndex]) {
+          const textToPaste = items[selectedIndex].querySelector('.item-content').textContent;
+          invoke('paste_text', { text: textToPaste })
+            .then(() => invoke('toggle_main_window_command'))
+            .catch(console.error);
+        }
         break;
       default:
         break;
