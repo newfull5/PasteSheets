@@ -3,7 +3,7 @@ use crate::modules::hotkey::restore_prev_app;
 use arboard::Clipboard;
 use enigo::{
     Direction::{Click, Press, Release},
-    Enigo, Key, Keyboard,
+    Enigo, Key, Keyboard, Settings,
 };
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
@@ -71,21 +71,22 @@ pub fn paste_text(text: String) -> Result<(), String> {
 
     restore_prev_app();
 
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+
     #[cfg(target_os = "macos")]
     {
-        let settings = enigo::Settings::default();
-        let mut enigo =
-            Enigo::new(&settings).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+        enigo.key(Key::Meta, Press).map_err(|e| e.to_string())?;
+        enigo.raw(9, Click).map_err(|e| e.to_string())?;
+        enigo.key(Key::Meta, Release).map_err(|e| e.to_string())?;
+    }
 
+    #[cfg(target_os = "windows")]
+    {
+        enigo.key(Key::Control, Press).map_err(|e| e.to_string())?;
+        enigo.raw(86, Click).map_err(|e| e.to_string())?;
         enigo
-            .key(Key::Meta, Press)
-            .map_err(|e| format!("Meta press failed: {:?}", e))?;
-        enigo
-            .key(Key::Unicode('v'), Click)
-            .map_err(|e| format!("v click failed: {:?}", e))?;
-        enigo
-            .key(Key::Meta, Release)
-            .map_err(|e| format!("Meta release failed: {:?}", e))?;
+            .key(Key::Control, Release)
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(())
