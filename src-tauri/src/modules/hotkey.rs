@@ -19,6 +19,7 @@ pub fn setup_global_hotkey<R: Runtime>(
 
     Ok(())
 }
+// TODO: 그냥 읽어오는것도 그냥 폴링을 해버리면 되는거 아닌가!!!!1
 
 fn get_current_app_bundle_id() -> Option<String> {
     let script = r#"
