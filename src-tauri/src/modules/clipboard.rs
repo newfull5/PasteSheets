@@ -1,5 +1,6 @@
 use crate::modules::db;
 use crate::modules::hotkey::restore_prev_app;
+use crate::modules::hotkey::toggle_main_window;
 use arboard::Clipboard;
 use enigo::{
     Direction::{Click, Press, Release},
@@ -32,7 +33,7 @@ pub fn monitor_clipboard() {
         info!("Monitoring clipboard...");
 
         loop {
-            thread::sleep(Duration::from_millis(4000));
+            thread::sleep(Duration::from_millis(1000));
 
             if let Some(current_text) = get_clipboard_text() {
                 let mut last = last_content.lock().unwrap();
@@ -63,7 +64,7 @@ pub fn paste_text(text: String) -> Result<(), String> {
 
     info!("Text copied to clipbaord");
 
-    restore_prev_app();
+    restore_prev_app(150);
 
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
 

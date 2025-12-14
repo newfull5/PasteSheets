@@ -135,48 +135,51 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('keydown', (event) => {
-  if (document.hasFocus()) {
-    const items = document.querySelectorAll('.history-item');
-    const totalItems = items.length;
 
-    switch (event.key) {
-      case 'ArrowUp':
-        console.log('ArrowUp');
-        event.preventDefault();
-        if (totalItems > 0) {
-          selectedIndex = selectedIndex <= 0 ? totalItems - 1 : selectedIndex - 1;
-          updateSelection();
-        }
-        break;
+  const items = document.querySelectorAll('.history-item');
+  const totalItems = items.length;
 
-      case 'ArrowDown':
-        console.log('ArrowDown pressed');
-        event.preventDefault();
-        if (totalItems > 0) {
-          selectedIndex = selectedIndex >= totalItems - 1 ? 0 : selectedIndex + 1;
-          updateSelection();
-        }
-        break;
-      case 'ArrowLeft':
-        console.log('ArrowLeft pressed');
-        break;
-      case 'ArrowRight':
-        console.log('ArrowRight pressed');
-        break;
-      case 'Enter':
-        console.log('Enter pressed');
-        event.preventDefault();
-        event.stopPropagation();
-        const items = document.querySelectorAll('.history-item');
-        if (items[selectedIndex]) {
-          const textToPaste = items[selectedIndex].querySelector('.item-content').textContent;
-          invoke('paste_text', { text: textToPaste })
-            .then(() => invoke('toggle_main_window_command'))
-            .catch(console.error);
-        }
-        break;
-      default:
-        break;
-    }
+  switch (event.key) {
+    case 'ArrowUp':
+      console.log('ArrowUp');
+      event.preventDefault();
+      if (totalItems > 0) {
+        selectedIndex = selectedIndex <= 0 ? totalItems - 1 : selectedIndex - 1;
+        updateSelection();
+      }
+      break;
+
+    case 'ArrowDown':
+      console.log('ArrowDown pressed');
+      event.preventDefault();
+      if (totalItems > 0) {
+        selectedIndex = selectedIndex >= totalItems - 1 ? 0 : selectedIndex + 1;
+        updateSelection();
+      }
+      break;
+    case 'ArrowLeft':
+      console.log('ArrowLeft pressed');
+      break;
+    case 'ArrowRight':
+      console.log('ArrowRight pressed');
+      break;
+    case 'Enter':
+      console.log('Enter pressed');
+      event.preventDefault();
+      event.stopPropagation();
+
+      const selectedItem = document.querySelectorAll('.history-item')[selectedIndex];
+
+      if (selectedItem) {
+        const textToPaste = selectedItem.querySelector('.item-content').textContent;
+
+        // 이제 Rust가 알아서 "숨기고 -> 기다렸다가 -> 붙여넣기"를 다 해줍니다.
+        invoke('paste_text', { text: textToPaste })
+          .then(() => { invoke('toggle_main_window') })
+          .catch((e) => alert('붙여넣기 실패: ' + e));
+      }
+      break;
+    default:
+      break;
   }
 });

@@ -6,6 +6,7 @@ use log::{debug, error, info};
 use modules::clipboard;
 use modules::db;
 use modules::hotkey;
+use tauri::AppHandle;
 
 #[tauri::command]
 fn get_clipboard_history() -> Result<Vec<String>, String> {
@@ -15,6 +16,11 @@ fn get_clipboard_history() -> Result<Vec<String>, String> {
 #[tauri::command]
 fn paste_text(text: String) -> Result<(), String> {
     clipboard::paste_text(text)
+}
+
+#[tauri::command]
+fn toggle_main_window(app: AppHandle) {
+    hotkey::toggle_main_window(&app);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -33,7 +39,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            hotkey::save_current_app_bundle_id();
+            hotkey::save_current_app();
 
             let _conn = db::init_db().expect("Failed to initialize database");
             info!("Database initialized");
@@ -49,7 +55,11 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_clipboard_history, paste_text])
+        .invoke_handler(tauri::generate_handler![
+            get_clipboard_history,
+            paste_text,
+            toggle_main_window
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
