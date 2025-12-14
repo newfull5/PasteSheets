@@ -1,11 +1,10 @@
-// src-tauri/src/lib.rs
-
 mod modules;
 
 use log::{debug, error, info};
 use modules::clipboard;
 use modules::db;
 use modules::hotkey;
+use modules::window_manager;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -50,8 +49,11 @@ pub fn run() {
             info!("Clipboard monitoring started");
 
             hotkey::setup_global_hotkey(app.handle().clone())?;
-
             info!("Global hotkey setup completed");
+
+            // 마우스 엣지 감지 시작
+            window_manager::start_mouse_edge_monitor(app.handle().clone())?;
+            info!("Mouse edge detection started");
 
             Ok(())
         })
