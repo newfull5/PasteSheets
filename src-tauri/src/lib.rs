@@ -8,7 +8,7 @@ use modules::window_manager;
 use tauri::AppHandle;
 
 #[tauri::command]
-fn get_clipboard_history() -> Result<Vec<String>, String> {
+fn get_clipboard_history() -> Result<Vec<db::PasteItem>, String> {
     db::get_all_contents().map_err(|e| e.to_string())
 }
 
