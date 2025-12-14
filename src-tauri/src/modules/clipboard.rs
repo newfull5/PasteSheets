@@ -1,5 +1,5 @@
 use crate::modules::db;
-use crate::modules::hotkey::restore_prev_app;
+use crate::modules::hotkey::restore_prev_app_native;
 use crate::modules::hotkey::toggle_main_window;
 use arboard::Clipboard;
 use enigo::{
@@ -64,7 +64,7 @@ pub fn paste_text(text: String) -> Result<(), String> {
 
     info!("Text copied to clipbaord");
 
-    restore_prev_app(150);
+    restore_prev_app_native();
 
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
 

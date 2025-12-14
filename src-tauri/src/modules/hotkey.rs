@@ -1,5 +1,10 @@
 use active_win_pos_rs::get_active_window;
+use cocoa::base::{id, nil};
+use cocoa::foundation::{NSArray, NSString};
 use log::{debug, info};
+use objc::{class, msg_send, sel, sel_impl};
+use std::ffi::CStr;
+use std::ffi::CString;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
@@ -48,19 +53,50 @@ pub fn save_current_app() {
     }
 }
 
-pub fn restore_prev_app(idle_time: u64) {
-    let prev = PREV_APP_NAME.lock().unwrap();
+pub fn restore_prev_app_native() {
+    #[cfg(target_os = "macos")]
+    {
+        let prev = PREV_APP_NAME.lock().unwrap();
 
-    if let Some(app_name) = &*prev {
-        info!("🔁 Restoring previous app: {}", app_name);
+        if let Some(target_app_name) = &*prev {
+            // info!("⚡️ Restoring app: {}", target_app_name); // 로그 필요시 주석 해제
 
-        // [변경 3] Bundle ID 대신 App Name으로 활성화
-        let script = format!(r#"tell application "{}" to activate"#, app_name);
+            unsafe {
+                // 1. NSWorkspace 클래스를 직접 찾아서 sharedWorkspace 호출
+                //    (import 필요 없음)
+                let workspace_class = class!(NSWorkspace);
+                let workspace: id = msg_send![workspace_class, sharedWorkspace];
 
-        // [변경 4] spawn()을 사용하여 결과를 기다리지 않고 비동기처럼 실행 (렉 없음)
-        let _ = Command::new("osascript").arg("-e").arg(&script).spawn();
+                // 2. 실행 중인 앱 목록 가져오기
+                let running_apps: id = msg_send![workspace, runningApplications];
+                let count: usize = msg_send![running_apps, count];
 
-        thread::sleep(Duration::from_millis(idle_time));
+                for i in 0..count {
+                    let app: id = msg_send![running_apps, objectAtIndex: i];
+
+                    // 3. 앱 이름 가져오기
+                    let ns_name: id = msg_send![app, localizedName];
+                    if ns_name == nil {
+                        continue;
+                    }
+
+                    // NSString -> Rust String 변환
+                    let name_ptr: *const i8 = msg_send![ns_name, UTF8String];
+                    let name_cstr = CStr::from_ptr(name_ptr);
+
+                    if let Ok(name_str) = name_cstr.to_str() {
+                        if name_str == target_app_name {
+                            // 4. 활성화 옵션 (NSApplicationActivateIgnoringOtherApps = 1 << 1)
+                            //    상수를 직접 써서 import 에러 방지
+                            let options: usize = 1 << 1;
+
+                            let _: bool = msg_send![app, activateWithOptions: options];
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
