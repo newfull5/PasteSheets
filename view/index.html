@@ -4,26 +4,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PasteSheet - 클립보드 히스토리</title>
+  <title>PasteSheet</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
-
 <body>
+
   <div class="container">
-    <h1>📋 PasteSheet</h1>
 
-    <div class="count" id="count">로딩 중...</div>
+    <div id="view-directories" class="view-page">
+      <header class="app-header">
+        <h1>PasteSheet</h1>
+        <div class="controls">
+          <button title="설정">⚙️</button>
+        </div>
+      </header>
 
-    <div class="controls">
-      <div class="directory">current directory</div>
-
-      <button onclick="clearAll()">🗑️ 전체 삭제</button>
+      <div id="directory-list" class="content-list">
+      </div>
     </div>
 
-    <div id="history-list"></div>
-  </div>
+    <div id="view-items" class="view-page hidden">
+      <header class="app-header header-row">
+        <div class="header-left">
+          <button class="btn-back" onclick="showDirectoryView()">◀</button>
+          <h1 id="current-folder-title" style="margin-left: 5px;">Folder</h1>
+        </div>
+        <div class="controls">
+          <button onclick="clearAll()" title="비우기">🗑️</button>
+        </div>
+      </header>
 
+      <div id="history-list" class="content-list"></div>
+    </div>
+
+  </div>
   <script type="module" src="script.js"></script>
 </body>
 

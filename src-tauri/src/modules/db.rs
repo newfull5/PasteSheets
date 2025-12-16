@@ -2,11 +2,36 @@ use rusqlite::{Connection, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub struct DirectoryInfo {
+    pub name: String,
+    pub count: i64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct PasteItem {
     pub id: i64,
     pub content: String,
     pub directory: String,
     pub created_at: String,
+}
+
+// 모든 디렉토리와 각각의 아이템 개수 조회
+pub fn get_directories() -> Result<Vec<DirectoryInfo>> {
+    let conn = Connection::open(get_path())?;
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT directory, COUNT(*) as count FROM paste_sheets GROUP BY directory ORDER BY directory"
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(DirectoryInfo {
+            name: row.get(0)?,
+            count: row.get(1)?,
+        })
+    })?;
+    let mut result = Vec::new();
+    for row in rows {
+        result.push(row?);
+    }
+    Ok(result)
 }
 
 pub fn get_path() -> String {

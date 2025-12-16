@@ -22,6 +22,11 @@ fn toggle_main_window(app: AppHandle) {
     hotkey::toggle_main_window(&app);
 }
 
+#[tauri::command]
+fn get_directories() -> Result<Vec<db::DirectoryInfo>, String> {
+    db::get_directories().map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -59,6 +64,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_clipboard_history,
+            get_directories,
             paste_text,
             toggle_main_window
         ])

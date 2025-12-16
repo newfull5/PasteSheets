@@ -1,9 +1,6 @@
-/* style.css */
-
 :root {
-  /* 색상 팔레트 정의 */
+  /* [핵심] 색상 팔레트 정의 */
   --bg-app: #0e1525;
-  /* 앱 배경 (짙은 남색) */
   --accent: rgb(220, 220, 87);
   /* 형광 연두색 포인트 */
   --text-main: #ffffff;
@@ -23,37 +20,91 @@ html,
 body {
   width: 100%;
   height: 100%;
+  /* 창 자체는 투명하게 둬서 둥근 모서리가 잘리게 함 */
   background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  /* 스크롤바 중복 방지 */
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
   padding: 5px;
+  /* 윈도우 그림자 등을 위한 여백 */
 }
 
-/* 메인 컨테이너 (앱 창) */
+/* [중요] 메인 컨테이너 - 여기가 실제 앱의 배경색입니다 */
 .container {
-  width: 400px;
-  max-height: 80vh;
-  background-color: rgba(18, 18, 18, 0.85);
+  width: 100%;
+  height: 100%;
+  /* 부모 높이 꽉 채움 */
+  max-height: 98vh;
+  /* 배경색을 여기서 지정해야 투명하지 않게 나옵니다 */
+  background-color: rgba(18, 18, 18, 0.95);
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* 얇은 테두리 추가 */
   display: flex;
   flex-direction: column;
   padding: 12px;
   overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  /* 그림자 */
 }
 
-/* 헤더 영역 */
+/* =========================================================
+   화면 전환 및 레이아웃
+   ========================================================= */
+
+/* 뷰 페이지 공통 */
+.view-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  /* 부드러운 전환 애니메이션 */
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 화면 숨김 유틸리티 */
+.hidden {
+  display: none !important;
+}
+
+/* =========================================================
+   헤더 및 버튼 스타일
+   ========================================================= */
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  min-height: 30px;
+  flex-shrink: 0;
+  /* 헤더가 찌그러지지 않게 */
+}
+
 h1 {
   color: var(--accent);
   font-size: 18px;
-  margin-bottom: 5px;
   font-weight: 500;
   letter-spacing: -0.5px;
 }
 
-/* 커서 느낌을 주기 위한 가상 요소 */
+/* 타이틀 옆 깜빡이는 커서 효과 */
 h1::after {
   content: '|';
   color: var(--accent);
@@ -67,23 +118,24 @@ h1::after {
   }
 }
 
-/* 컨트롤 버튼 영역 */
-.controls {
+.header-left {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 15px;
+  align-items: center;
 }
 
+/* 버튼 공통 */
 button {
   background: transparent;
   color: var(--text-sub);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 6px 12px;
+  padding: 6px 8px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button:hover {
@@ -92,35 +144,71 @@ button:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* 리스트 영역 */
-#history-list {
+.controls {
+  display: flex;
+  gap: 6px;
+}
+
+/* 뒤로가기 버튼 */
+.btn-back {
+  border: none;
+  font-size: 16px;
+  color: var(--accent);
+  padding: 4px 8px;
+  margin-right: 4px;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+}
+
+/* =========================================================
+   리스트 영역 (폴더 & 히스토리 공통)
+   ========================================================= */
+
+.content-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
-  padding-right: 1px;
+  padding-right: 2px;
+  flex: 1;
+  /* 남은 공간 꽉 채우기 */
 }
 
-/* 스크롤바 커스텀 */
-#history-list::-webkit-scrollbar {
+/* 스크롤바 디자인 */
+.content-list::-webkit-scrollbar {
   width: 6px;
 }
 
-#history-list::-webkit-scrollbar-thumb {
+.content-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 
-/* 개별 아이템 스타일 */
+.empty-state {
+  color: var(--text-sub);
+  text-align: center;
+  padding: 40px 0;
+  font-size: 14px;
+}
+
+/* =========================================================
+   아이템 디자인 (폴더 & 히스토리 공통 스타일)
+   ========================================================= */
+
+/* 1. 히스토리 아이템 */
 .history-item {
   display: flex;
   align-items: center;
   background: transparent;
   border-radius: 6px;
-  padding: 12px 12px;
+  padding: 10px 12px;
   cursor: pointer;
   transition: background 0.1s;
   position: relative;
+  min-height: 40px;
 }
 
 .history-item:hover,
@@ -128,50 +216,93 @@ button:hover {
   background-color: var(--item-hover);
 }
 
-/* 왼쪽 네온 바 (Bar) 아이콘 효과 */
+/* 왼쪽 네온 바 (Bar) */
 .history-item::before {
   content: '';
   display: block;
   width: 4px;
-  height: 18px;
+  height: 16px;
   background-color: var(--accent);
-  margin-right: 15px;
+  margin-right: 12px;
   border-radius: 2px;
   opacity: 0.3;
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
   transition: all 0.2s;
 }
 
-/* 호버 시 네온 바가 밝아짐 */
 .history-item:hover::before,
 .history-item.selected::before {
   opacity: 1;
   box-shadow: 0 0 8px var(--accent);
 }
 
-/* 텍스트 내용 */
 .item-content {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0;
-  font-weight: 400;
 }
 
-/* 우측 메타 정보 */
 .item-meta {
-  margin-left: 15px;
+  margin-left: 10px;
   color: var(--text-sub);
-  font-size: 12px;
+  font-size: 11px;
   font-family: monospace;
   opacity: 0.6;
 }
 
-.empty-state {
+
+/* 2. 폴더(디렉토리) 아이템 - 히스토리 아이템 스타일 상속 */
+.dir-item {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border-radius: 6px;
+  padding: 12px 12px;
+  /* 폴더는 조금 더 넉넉하게 */
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+  color: var(--text-main);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  /* 아주 연한 구분선 */
+}
+
+.dir-item:hover {
+  background-color: var(--item-hover);
+}
+
+/* 폴더 아이템 왼쪽 네온 바 (기본 회색) */
+.dir-item::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 18px;
+  background-color: var(--text-sub);
+  margin-right: 12px;
+  border-radius: 2px;
+  opacity: 0.4;
+  transition: all 0.2s;
+}
+
+/* 호버 시 폴더도 형광색으로 빛남 */
+.dir-item:hover::before {
+  background-color: var(--accent);
+  opacity: 1;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.dir-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.dir-count {
+  font-size: 12px;
   color: var(--text-sub);
-  text-align: center;
-  padding: 40px 0;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
