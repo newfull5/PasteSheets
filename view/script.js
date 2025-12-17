@@ -52,15 +52,14 @@ async function loadDirectories() {
   try {
     // DB에서 실제 디렉토리 목록과 개수 로드
     const directories = await invoke('get_directories');
-
-    // "All Items" 추가 (모든 아이템)
     const allItems = await invoke('get_clipboard_history');
     const dirs = [
       { name: 'All Items', count: allItems.length },
       ...directories
     ];
 
-    renderDirectories(dirs);
+    const filteredDirs = dirs.filter(dir => dir.name !== 'All Items');
+    renderDirectories(filteredDirs);
   } catch (error) {
     console.error('Failed to load directories:', error);
     renderDirectories([]);
@@ -137,3 +136,104 @@ window.selectItem = function (index) {
 window.clearAll = function () {
   alert('삭제 기능');
 };
+
+
+
+// 기존 script.js 코드 하단에 아래 키보드 이벤트 리스너 수정 및 추가
+
+window.addEventListener('keydown', async (event) => {
+  const dirView = !document.getElementById('view-directories').classList.contains('hidden');
+  const itemView = !document.getElementById('view-items').classList.contains('hidden');
+
+  if (dirView) {
+    const dirs = document.querySelectorAll('.dir-item');
+    if (dirs.length === 0) return;
+
+    let selectedIndex = -1;
+    dirs.forEach((dir, idx) => {
+      if (dir.classList.contains('selected')) selectedIndex = idx;
+    });
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      let nextIndex = (selectedIndex + 1) % dirs.length;
+      selectDirItem(nextIndex);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      let prevIndex = (selectedIndex - 1 + dirs.length) % dirs.length;
+      selectDirItem(prevIndex);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (selectedIndex >= 0) {
+        const dirName = dirs[selectedIndex].querySelector('.dir-name').textContent;
+        // 1) 디렉토리 화면에서 엔터 누르면 안으로 들어가기
+        await window.showItemView(dirName);
+
+        // 2) 현재 선택된 아이템 중 첫번째 아이템을 선택하고 paste_text로 붙여넣기 시도
+        // loadHistory가 async이므로 충분히 기다려졌다고 가정
+
+        // 1) 첫 아이템 선택
+        const items = document.querySelectorAll('.history-item');
+        if (items.length > 0) {
+          items.forEach(el => el.classList.remove('selected'));
+          items[0].classList.add('selected');
+
+          // 2) 클립보드에 텍스트 붙여넣기 invoke 호출
+          // history-item 내부 .item-content 텍스트 가져오기
+          const content = items[0].querySelector('.item-content').textContent;
+
+          // invoke가 초기화 되어있으면 호출
+          if (invoke) {
+            try {
+              await invoke('paste_text', { text: content });
+            } catch (err) {
+              console.error('Failed to paste text:', err);
+            }
+          }
+        }
+      }
+    }
+  } else if (itemView) {
+    const items = document.querySelectorAll('.history-item');
+    if (items.length === 0) return;
+
+    let selectedIndex = -1;
+    items.forEach((item, index) => {
+      if (item.classList.contains('selected')) selectedIndex = index;
+    });
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      let nextIndex = (selectedIndex + 1) % items.length;
+      window.selectItem(nextIndex);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      let prevIndex = (selectedIndex - 1 + items.length) % items.length;
+      window.selectItem(prevIndex);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (selectedIndex >= 0) {
+        const selectedItem = items[selectedIndex];
+        const content = selectedItem.querySelector('.item-content').textContent;
+        if (invoke) {
+          try {
+            await invoke('paste_text', { text: content });
+          } catch (err) {
+            console.error('Failed to paste text:', err);
+          }
+        }
+      }
+    }
+  }
+});
+
+// 디렉토리 항목 선택 함수
+function selectDirItem(index) {
+  const dirs = document.querySelectorAll('.dir-item');
+  if (dirs.length === 0) return;
+  dirs.forEach(el => el.classList.remove('selected'));
+  if (dirs[index]) {
+    dirs[index].classList.add('selected');
+    dirs[index].focus?.()
+  }
+}
