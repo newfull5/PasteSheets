@@ -1,6 +1,6 @@
 mod modules;
 
-use log::{debug, error, info};
+use log::{debug, info};
 use modules::clipboard;
 use modules::db;
 use modules::hotkey;
@@ -25,6 +25,21 @@ fn toggle_main_window(app: AppHandle) {
 #[tauri::command]
 fn get_directories() -> Result<Vec<db::DirectoryInfo>, String> {
     db::get_directories().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn create_directory(name: String) -> Result<i64, String> {
+    db::create_directory(&name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn rename_directory(old_name: String, new_name: String) -> Result<(), String> {
+    db::rename_directory(&old_name, &new_name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_directory(name: String) -> Result<(), String> {
+    db::delete_directory(&name).map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -65,6 +80,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_clipboard_history,
             get_directories,
+            create_directory,
+            rename_directory,
+            delete_directory,
             paste_text,
             toggle_main_window
         ])

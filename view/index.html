@@ -15,12 +15,13 @@
     <div id="view-directories" class="view-page">
       <header class="app-header">
         <h1>PasteSheet</h1>
-        <div class="controls">
-          <button title="설정">⚙️</button>
-        </div>
       </header>
 
       <div id="directory-list" class="content-list">
+      </div>
+      <div id="dir-input-container" class="hidden" style="margin-top: 10px; padding: 0 4px;">
+        <input type="text" id="new-dir-name" placeholder="새 폴더 이름..."
+          style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--accent); color: white; padding: 8px; border-radius: 6px; outline: none;">
       </div>
     </div>
 
@@ -39,6 +40,26 @@
     </div>
 
   </div>
+  <div id="context-menu" class="hidden">
+    <div class="menu-item" id="menu-rename" onclick="doRename(event)">Rename</div>
+    <div class="menu-item" id="menu-delete" onclick="doDelete(event)">Delete</div>
+  </div>
+
+  <!-- 커스텀 모달 -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal-box">
+      <h3 id="modal-title">확인</h3>
+      <div id="modal-body">
+        <input type="text" id="modal-input" class="hidden">
+        <p id="modal-text"></p>
+      </div>
+      <div class="modal-buttons">
+        <button id="modal-cancel">취소</button>
+        <button id="modal-confirm" class="btn-danger">확인</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="script.js"></script>
 </body>
 

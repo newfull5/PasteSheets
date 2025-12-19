@@ -6,10 +6,7 @@ use objc::{class, msg_send, sel, sel_impl};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::sync::Mutex;
-use std::thread;
-use std::time::Duration;
-use std::{process::Command, sync::OnceLock};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState,
 };
@@ -29,7 +26,6 @@ pub fn setup_global_hotkey<R: Runtime>(
     Ok(())
 }
 
-// [변경 2] osascript 대신 네이티브 API 사용 (속도: 200ms -> 1ms)
 fn get_current_app_name() -> Option<String> {
     match get_active_window() {
         Ok(window) => {
@@ -121,14 +117,6 @@ pub fn handle_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &Shortcut, even
 }
 
 pub fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(window) = app.get_webview_window("main") {
-        if window.is_visible().unwrap_or(false) {
-            let _ = window.hide();
-            debug!("Window hidden");
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
-            debug!("Window shown");
-        }
-    }
+    use crate::modules::window_manager;
+    window_manager::toggle_main_window(app);
 }

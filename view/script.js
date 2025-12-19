@@ -1,11 +1,191 @@
+console.log('script.js loading...');
 
 let invoke = null;
 let currentDirId = null;
+let targetDirName = null; // 컨텍스트 메뉴 대상 폴더명
+
+// 글로벌 노출 (스크립트 로드 시 즉시)
+window.showContextMenu = function (e, dirName) {
+  console.log('showContextMenu called for:', dirName);
+  e.preventDefault();
+  if (dirName === 'All Items') return;
+
+  targetDirName = dirName;
+  const menu = document.getElementById('context-menu');
+  if (!menu) {
+    console.error('Context menu element not found!');
+    return;
+  }
+  menu.style.top = `${e.clientY}px`;
+  menu.style.left = `${e.clientX}px`;
+  menu.classList.remove('hidden');
+
+  const delBtn = document.getElementById('menu-delete');
+  const renameBtn = document.getElementById('menu-rename');
+  if (dirName === 'CLIPBOARD') {
+    if (delBtn) delBtn.style.display = 'none';
+    if (renameBtn) renameBtn.style.display = 'none';
+  } else {
+    if (delBtn) delBtn.style.display = 'block';
+    if (renameBtn) renameBtn.style.display = 'block';
+  }
+};
+
+// [커스텀 모달 유틸리티]
+function showModal({ title, text, inputPlaceholder, inputValue, confirmText, isDanger }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('modal-overlay');
+    const titleEl = document.getElementById('modal-title');
+    const textEl = document.getElementById('modal-text');
+    const inputEl = document.getElementById('modal-input');
+    const confirmBtn = document.getElementById('modal-confirm');
+    const cancelBtn = document.getElementById('modal-cancel');
+
+    titleEl.textContent = title || 'Check';
+    textEl.textContent = text || '';
+
+    if (inputPlaceholder !== undefined) {
+      inputEl.classList.remove('hidden');
+      inputEl.placeholder = inputPlaceholder;
+      inputEl.value = inputValue || '';
+    } else {
+      inputEl.classList.add('hidden');
+    }
+
+    confirmBtn.textContent = confirmText || 'OK';
+    if (isDanger) confirmBtn.classList.add('btn-danger');
+    else confirmBtn.classList.remove('btn-danger');
+
+    const cleanup = () => {
+      overlay.classList.add('hidden');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('keydown', onKeyDown);
+    };
+
+    const onConfirm = () => {
+      const val = inputEl.value;
+      cleanup();
+      resolve(inputPlaceholder !== undefined ? val : true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        onConfirm();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel();
+      }
+    };
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('keydown', onKeyDown);
+
+    overlay.classList.remove('hidden');
+
+    if (inputPlaceholder !== undefined) {
+      inputEl.focus();
+      inputEl.select();
+    }
+  });
+}
+
+window.doRename = async function (e) {
+  if (e) e.stopPropagation();
+  const dirName = targetDirName;
+  document.getElementById('context-menu').classList.add('hidden');
+
+  if (!dirName) return;
+
+  const newName = await showModal({
+    title: 'Folder Rename',
+    text: `'${dirName}' 폴더의 새 이름을 입력하세요:`,
+    inputPlaceholder: 'New folder name...',
+    inputValue: dirName,
+    confirmText: 'Rename'
+  });
+
+  if (newName && newName.trim() && newName !== dirName) {
+    try {
+      console.log(`Invoking rename_directory: ${dirName} -> ${newName.trim()}`);
+      // Tauri 2에서는 인자 이름을 camelCase로 맞춰야 할 수 있음.
+      // Rust에서 old_name, new_name이므로 JS에서는 oldName, newName 사용 권장.
+      await invoke('rename_directory', { oldName: dirName, newName: newName.trim() });
+      await loadDirectories();
+    } catch (err) {
+      console.error('Rename failed:', err);
+      alert('이름 변경 실패: ' + err);
+    }
+  }
+};
+
+window.doDelete = async function (e) {
+  if (e) e.stopPropagation();
+  const dirName = targetDirName;
+  document.getElementById('context-menu').classList.add('hidden');
+
+  if (!dirName) return;
+
+  const result = await showModal({
+    title: 'Folder Delete',
+    text: `'${dirName}' 폴더와 그 안의 모든 항목을 삭제하시겠습니까?`,
+    confirmText: 'Delete',
+    isDanger: true
+  });
+
+  if (result) {
+    try {
+      console.log(`Invoking delete_directory: ${dirName}`);
+      await invoke('delete_directory', { name: dirName });
+      await loadDirectories();
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('삭제 실패: ' + err);
+    }
+  }
+};
+
 
 // 1. 초기화
 window.addEventListener('DOMContentLoaded', async () => {
   if (initTauri()) {
     await loadDirectories(); // 실제 DB에서 로드
+
+    // 애니메이션 트리거: 윈도우가 보여질 때 동작
+    const container = document.querySelector('.container');
+
+    // [추가] Tauri 창이 포커스를 받거나 명시적으로 보여질 때 애니메이션 시작
+    if (window.__TAURI__) {
+      const { listen } = window.__TAURI__.event;
+
+      // 창이 포커스될 때 (show() 호출 시 보통 발생)
+      listen('tauri://focus', () => {
+        setTimeout(() => container.classList.add('visible'), 20);
+      });
+
+      // 창이 블러될 때 (선택사항: 닫힐 때 애니메이션을 미리 빼두고 싶다면)
+      listen('tauri://blur', () => {
+        // container.classList.remove('visible'); // 아예 사라지게 하려면 주석 해제
+      });
+
+      // 백엔드에서 명시적으로 보내는 이벤트 (커스텀)
+      listen('window-visible', (event) => {
+        if (event.payload) {
+          setTimeout(() => container.classList.add('visible'), 20);
+        } else {
+          container.classList.remove('visible');
+        }
+      });
+    }
 
     // 백엔드에서 클립보드 변경 이벤트 감지
     if (window.__TAURI__ && window.__TAURI__.event) {
@@ -92,18 +272,33 @@ async function loadDirectories() {
 function renderDirectories(dirs) {
   const listDiv = document.getElementById('directory-list');
 
+  let directoryHtml = '';
   if (dirs.length === 0) {
-    listDiv.innerHTML = '<div class="empty-state">디렉토리가 없습니다</div>';
-    return;
+    directoryHtml = '<div class="empty-state">디렉토리가 없습니다</div>';
+  } else {
+    // 기존 디자인(.history-item)과 통일감을 주는 .dir-item 구조
+    directoryHtml = dirs.map(dir => {
+      const safeName = dir.name.replace(/'/g, "\\'");
+      return `
+        <div class="dir-item"
+             onclick="showItemView('${safeName}')"
+             onkeydown="if(event.key==='Enter') showItemView('${safeName}')"
+             oncontextmenu="showContextMenu(event, '${safeName}')"
+             tabindex="0">
+          <span class="dir-name">${dir.name}</span>
+          <span class="dir-count">${dir.count}</span>
+        </div>
+      `;
+    }).join('');
   }
 
-  // 기존 디자인(.history-item)과 통일감을 주는 .dir-item 구조
-  listDiv.innerHTML = dirs.map(dir => `
-    <div class="dir-item" onclick="showItemView('${dir.name}')">
-      <span class="dir-name">${dir.name}</span>
-      <span class="dir-count">${dir.count}</span>
+  const newFolderHtml = `
+    <div class="dir-item btn-new-folder" onclick="createDirectoryPrompt(); event.stopPropagation();" onkeydown="if(event.key==='Enter') { createDirectoryPrompt(); event.stopPropagation(); }" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub);">
+      <span class="dir-name" style="font-size: 14px;"> New Folder </span>
     </div>
-  `).join('');
+  `;
+
+  listDiv.innerHTML = directoryHtml + newFolderHtml;
 }
 
 async function loadHistory(dirName) {
@@ -165,11 +360,67 @@ window.clearAll = function () {
   alert('삭제 기능');
 };
 
+window.createDirectoryPrompt = function () {
+  const container = document.getElementById('dir-input-container');
+  const input = document.getElementById('new-dir-name');
+  const btnNewFolder = document.querySelector('.btn-new-folder');
+
+  container.classList.remove('hidden');
+  if (btnNewFolder) btnNewFolder.classList.add('hidden');
+  input.focus();
+
+  input.onkeydown = async (e) => {
+    if (e.key === 'Enter') {
+      e.stopPropagation(); // 전역 키 이벤트 전파 방지
+      const name = input.value.trim();
+      if (name) {
+        try {
+          await invoke('create_directory', { name });
+          input.value = '';
+          container.classList.add('hidden');
+          await loadDirectories();
+        } catch (error) {
+          console.error('Failed to create directory:', error);
+          alert('폴더 생성 실패: ' + error);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      e.stopPropagation(); // 전역 키 이벤트 전파 방지
+      input.value = '';
+      container.classList.add('hidden');
+      if (btnNewFolder) btnNewFolder.classList.remove('hidden');
+    }
+  };
+};
+
+// 컨텍스트 메뉴 로직은 상단으로 이동됨
+
+// 메뉴 밖 클릭 시 숨기기
+window.addEventListener('click', () => {
+  const menu = document.getElementById('context-menu');
+  menu.classList.add('hidden');
+});
+
+window.addEventListener('contextmenu', (e) => {
+  // 디렉토리가 아닌 곳에서 우클릭 시 메뉴 숨기기
+  if (!e.target.closest('.dir-item')) {
+    document.getElementById('context-menu').classList.add('hidden');
+  }
+});
+
+// 하단에 있던 중복 및 인자 오류가 있던 리스너 제거
+
 
 
 // 기존 script.js 코드 하단에 아래 키보드 이벤트 리스너 수정 및 추가
 
 window.addEventListener('keydown', async (event) => {
+  // 모달이 열려있으면 메인 키보드 이벤트 무시
+  const modalOverlay = document.getElementById('modal-overlay');
+  if (modalOverlay && !modalOverlay.classList.contains('hidden')) {
+    return;
+  }
+
   if (event.key === 'Escape') {
     event.preventDefault();
     if (invoke) await invoke('toggle_main_window');
@@ -199,12 +450,23 @@ window.addEventListener('keydown', async (event) => {
     } else if (event.key === 'Enter' || event.key === 'ArrowRight') {
       event.preventDefault();
       if (selectedIndex >= 0) {
-        const dirName = dirs[selectedIndex].querySelector('.dir-name').textContent;
-        // 디렉토리 화면에서 엔터나 오른쪽 방향키를 누르면 안으로 들어가기만 함
+        const selectedDir = dirs[selectedIndex];
+        // 새 폴더 버튼인 경우 네비게이션 방지
+        if (selectedDir.classList.contains('btn-new-folder')) {
+          createDirectoryPrompt();
+          return;
+        }
+        const dirName = selectedDir.querySelector('.dir-name').textContent;
         await window.showItemView(dirName);
       }
     }
   } else if (itemView) {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      window.showDirectoryView();
+      return;
+    }
+
     const items = document.querySelectorAll('.history-item');
     if (items.length === 0) return;
 
@@ -221,9 +483,6 @@ window.addEventListener('keydown', async (event) => {
       event.preventDefault();
       let prevIndex = (selectedIndex - 1 + items.length) % items.length;
       window.selectItem(prevIndex);
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      window.showDirectoryView();
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (selectedIndex >= 0) {

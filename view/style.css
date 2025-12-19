@@ -28,28 +28,43 @@ body {
 }
 
 body {
-  padding: 5px;
-  /* 윈도우 그림자 등을 위한 여백 */
+  padding: 0;
+  /* 화면 끝에 완전히 붙도록 패딩 제거 */
 }
 
 /* [중요] 메인 컨테이너 - 여기가 실제 앱의 배경색입니다 */
 .container {
   width: 100%;
   height: 100%;
-  /* 부모 높이 꽉 채움 */
-  max-height: 98vh;
-  /* 배경색을 여기서 지정해야 투명하지 않게 나옵니다 */
-  background-color: rgba(18, 18, 18, 0.95);
-  border-radius: 12px;
+  max-height: 100vh;
+  background-color: rgba(18, 18, 18, 0.98);
+  /* 좀 더 진하게 */
+  border-radius: 16px 0 0 16px;
+  /* 왼쪽만 둥글게 해서 사이드바 느낌 강조 */
   border: 1px solid rgba(255, 255, 255, 0.1);
-  /* 얇은 테두리 추가 */
+  border-right: none;
+  /* 오른쪽 경계선 제거 */
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 16px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  /* 그림자 */
+  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
+
+  /* [수정] 이동 거리를 줄이고 opacity를 추가하여 '빨려들어가는' 느낌 방지 */
+  opacity: 0;
+  transform: translateX(60px);
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.3s ease-out;
+  pointer-events: none;
+  /* 숨겨져 있을 때 클릭 방지 */
+}
+
+/* [추가] 활성화 시 */
+.container.visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 /* =========================================================
@@ -213,7 +228,15 @@ button:hover {
 
 .history-item:hover,
 .history-item.selected {
-  background-color: var(--item-hover);
+  background-color: rgba(255, 255, 255, 0.05);
+  /* 더 은은한 배경 */
+  outline: none;
+  /* 파란색 테두리 제거 */
+}
+
+.history-item.selected {
+  background-color: rgba(220, 220, 87, 0.1);
+  /* 선택 시 엑센트 컬러 미세하게 배합 */
 }
 
 /* 왼쪽 네온 바 (Bar) */
@@ -271,7 +294,14 @@ button:hover {
 
 .dir-item:hover,
 .dir-item.selected {
-  background-color: var(--item-hover);
+  background-color: rgba(255, 255, 255, 0.05);
+  outline: none;
+  /* 파란색 테두리 제거 */
+}
+
+.dir-item.selected {
+  background-color: rgba(220, 220, 87, 0.1);
+  /* 선택 시 엑센트 컬러 미세하게 배합 */
 }
 
 /* 폴더 아이템 왼쪽 네온 바 (기본 회색) */
@@ -307,4 +337,158 @@ button:hover {
   background: rgba(255, 255, 255, 0.08);
   padding: 2px 8px;
   border-radius: 10px;
+}
+
+/* 3. 새 폴더 추가 버튼 (하단 고정 스타일) */
+.btn-new-folder {
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  margin-top: auto;
+  /* 상단 여백을 최대로 벌려 하단에 밀어넣음 (플렉스 컨테이너일 경우) */
+  opacity: 0.8;
+}
+
+.btn-new-folder::before {
+  content: '＋' !important;
+  /* 바 대신 + 기호 */
+  background: none !important;
+  box-shadow: none !important;
+  color: var(--accent);
+  font-size: 18px;
+  width: auto !important;
+  height: auto !important;
+  opacity: 1 !important;
+  margin-right: 8px !important;
+}
+
+.btn-new-folder:hover {
+  opacity: 1;
+  background-color: rgba(220, 220, 87, 0.05) !important;
+}
+
+#context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  padding: 5px 0;
+  min-width: 120px;
+}
+
+.menu-item {
+  padding: 8px 15px;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.menu-item:hover {
+  background: var(--accent);
+  color: black;
+}
+
+.menu-item#menu-delete:hover {
+  background: #ff5555;
+  color: white;
+}
+
+/* =========================================================
+   커스텀 모달 스타일
+   ========================================================= */
+#modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+#modal-box {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#modal-title {
+  color: var(--accent);
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+#modal-body {
+  margin-bottom: 20px;
+}
+
+#modal-text {
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+#modal-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  outline: none;
+  font-size: 14px;
+}
+
+#modal-input:focus {
+  border-color: var(--accent);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-buttons button {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+#modal-confirm {
+  background: var(--accent);
+  color: black;
+  border: none;
+  font-weight: 500;
+}
+
+#modal-confirm.btn-danger {
+  background: #ff5555;
+  color: white;
+}
+
+#modal-cancel {
+  background: transparent;
+  color: var(--text-sub);
 }

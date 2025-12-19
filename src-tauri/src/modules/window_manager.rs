@@ -1,13 +1,61 @@
 use log::debug;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
 
-// 윈도우가 엣지로 표시 중인지 추적
-static WINDOW_SHOWN_BY_EDGE: Mutex<bool> = Mutex::new(false);
+// 윈도우 표시 상태 및 자동 닫기 활성화 여부 추적
+static IS_WINDOW_VISIBLE: Mutex<bool> = Mutex::new(false);
+static IS_AUTO_HIDE_ENABLED: Mutex<bool> = Mutex::new(false);
 
+pub fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(window) = app.get_webview_window("main") {
+        let mut visible = IS_WINDOW_VISIBLE.lock().unwrap();
+        let mut auto_hide = IS_AUTO_HIDE_ENABLED.lock().unwrap();
+
+        if *visible {
+            // [상태: 숨김]
+            *visible = false;
+            *auto_hide = false; // 단축키로 닫을 때 자동닫기 해제
+                                // 1. 프론트엔드에 애니메이션 시작 신호를 먼저 보냄
+            let _ = window.emit("window-visible", false);
+
+            // 2. 별도 스레드에서 대기 후, 여전히 숨김 상태일 때만 hide() 호출
+            let window_clone = window.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(350));
+
+                // 다시 한 번 상태를 확인 (대기 중에 다시 켜졌을 수도 있음)
+                let still_hidden = {
+                    let s = IS_WINDOW_VISIBLE.lock().unwrap();
+                    !*s
+                };
+
+                if still_hidden {
+                    let _ = window_clone.hide();
+                    debug!("Window physically hidden after animation delay");
+                }
+            });
+        } else {
+            // [상태: 표시]
+            *visible = true;
+            *auto_hide = false; // 단축키로 열 때는 마우스가 나가도 안 닫히게 설정
+
+            // 1. 먼저 윈도우를 보여줌
+            let _ = window.show();
+            let _ = window.set_focus();
+
+            // 2. 아주 살짝의 텀을 두고 애니메이션 신호를 보냄 (레이아웃 준비 시간)
+            let window_clone = window.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(20));
+                let _ = window_clone.emit("window-visible", true);
+            });
+            debug!("Window shown and animation-start emitted");
+        }
+    }
+}
 pub fn start_mouse_edge_monitor<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -30,37 +78,25 @@ fn set_window_position<R: Runtime>(app: &AppHandle<R>) {
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     if let Some(window) = app.get_webview_window("main") {
-        #[cfg(target_os = "macos")]
-        {
-            use tauri::PhysicalPosition;
+        use tauri::LogicalPosition;
 
-            if let Ok(monitors) = window.available_monitors() {
-                if let Some(monitor) = monitors.first() {
-                    let size = monitor.size();
-                    let window_width = 410.0;
-                    let x = size.width as f64 - window_width;
-                    let y = 0.0;
+        if let Ok(monitors) = window.available_monitors() {
+            if let Some(monitor) = monitors.first() {
+                let scale_factor = monitor.scale_factor();
+                let physical_size = monitor.size();
 
-                    let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
-                    debug!("✅ Window positioned at right edge: ({}, {})", x, y);
-                }
-            }
-        }
+                // 물리 픽셀을 배율로 나눠서 논리 좌표(Points) 구하기
+                let logical_width = physical_size.width as f64 / scale_factor;
 
-        #[cfg(target_os = "windows")]
-        {
-            use tauri::PhysicalPosition;
+                let window_width = 410.0;
+                let x = logical_width - window_width;
+                let y = 0.0;
 
-            if let Ok(monitors) = window.available_monitors() {
-                if let Some(monitor) = monitors.first() {
-                    let size = monitor.size();
-                    let window_width = 410.0;
-                    let x = size.width as f64 - window_width;
-                    let y = 0.0;
-
-                    let _ = window.set_position(PhysicalPosition::new(x as i32, y as i32));
-                    debug!("✅ Window positioned at right edge: ({}, {})", x, y);
-                }
+                let _ = window.set_position(LogicalPosition::new(x, y));
+                debug!(
+                    "✅ Window positioned at right edge (Logical): ({}, {})",
+                    x, y
+                );
             }
         }
     }
@@ -77,36 +113,63 @@ fn setup_mouse_event_monitoring<R: Runtime>(app: AppHandle<R>) {
     thread::spawn(move || {
         loop {
             if let Some(mouse_x) = get_mouse_x() {
-                if let Some(screen_width) = get_screen_width() {
-                    let threshold = 10.0;
-                    let at_right_edge = mouse_x >= screen_width - threshold;
+                if let Some(window) = app.get_webview_window("main") {
+                    if let Ok(monitors) = window.available_monitors() {
+                        let mut current_screen_right_edge = 0.0;
 
-                    let mut shown = WINDOW_SHOWN_BY_EDGE.lock().unwrap();
+                        for monitor in monitors {
+                            let scale_factor = monitor.scale_factor();
+                            let pos = monitor.position();
+                            let size = monitor.size();
 
-                    // 엣지에 들어감
-                    if at_right_edge && !*shown {
-                        if let Some(window) = app.get_webview_window("main") {
-                            if !window.is_visible().unwrap_or(false) {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                                *shown = true;
-                                debug!("✅ Window shown from mouse edge");
+                            // 논리적 좌표로 변환하여 모든 디스플레이에서 동일한 비율의 거리값 사용
+                            let left = pos.x as f64 / scale_factor;
+                            let width = size.width as f64 / scale_factor;
+                            let right = left + width;
+
+                            if mouse_x >= left && mouse_x <= right {
+                                current_screen_right_edge = right;
+                                break;
                             }
                         }
-                    }
-                    // 엣지에서 떠남
-                    else if !at_right_edge && *shown {
-                        if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                                *shown = false;
-                                debug!("✅ Window hidden (left mouse edge)");
+
+                        if current_screen_right_edge > 0.0 {
+                            let show_threshold = 2.0;
+                            let hide_threshold = 410.0;
+
+                            let at_right_edge =
+                                mouse_x >= current_screen_right_edge - show_threshold;
+                            let outside_window =
+                                mouse_x < current_screen_right_edge - hide_threshold;
+
+                            let mut visible = IS_WINDOW_VISIBLE.lock().unwrap();
+                            let mut auto_hide = IS_AUTO_HIDE_ENABLED.lock().unwrap();
+
+                            if at_right_edge && !*visible {
+                                // 엣지에 닿아 새로 보여주는 경우
+                                if !window.is_visible().unwrap_or(false) {
+                                    *visible = true;
+                                    *auto_hide = true; // 마우스로 열었으니 자동 닫기 활성화
+                                    let _ = window.emit("window-visible", true);
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                    debug!("✅ Window shown from mouse edge (Auto-hide enabled)");
+                                }
+                            } else if outside_window && *visible && *auto_hide {
+                                // 창 밖으로 나갔고, 자동 닫기가 활성화된 상태일 때만 닫음
+                                if window.is_visible().unwrap_or(false) {
+                                    *visible = false;
+                                    *auto_hide = false;
+                                    let _ = window.emit("window-visible", false);
+                                    thread::sleep(Duration::from_millis(150));
+                                    let _ = window.hide();
+                                    debug!("✅ Window hidden (left mouse edge)");
+                                }
                             }
                         }
                     }
                 }
             }
-
             thread::sleep(Duration::from_millis(100));
         }
     });
@@ -118,28 +181,6 @@ fn get_mouse_x() -> Option<f64> {
         let event_class = class!(NSEvent);
         let pos: cocoa::foundation::NSPoint = msg_send![event_class, mouseLocation];
         Some(pos.x)
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn get_screen_width() -> Option<f64> {
-    unsafe {
-        let screens_class = class!(NSScreen);
-        let screens: cocoa::base::id = msg_send![screens_class, screens];
-
-        if screens.is_null() {
-            return None;
-        }
-
-        let count: usize = msg_send![screens, count];
-        if count == 0 {
-            return None;
-        }
-
-        let screen: cocoa::base::id = msg_send![screens, objectAtIndex: 0];
-        let frame: cocoa::foundation::NSRect = msg_send![screen, visibleFrame];
-
-        Some(frame.size.width + frame.origin.x)
     }
 }
 
