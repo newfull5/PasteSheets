@@ -50,7 +50,7 @@ pub fn run() {
             let db_path = db::get_path();
             debug!("Database path: {:?}", db_path);
 
-            clipboard::monitor_clipboard();
+            clipboard::monitor_clipboard(app.handle().clone());
             info!("Clipboard monitoring started");
 
             hotkey::setup_global_hotkey(app.handle().clone())?;

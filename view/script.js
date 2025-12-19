@@ -6,6 +6,17 @@ let currentDirId = null;
 window.addEventListener('DOMContentLoaded', async () => {
   if (initTauri()) {
     await loadDirectories(); // 실제 DB에서 로드
+
+    // 백엔드에서 클립보드 변경 이벤트 감지
+    if (window.__TAURI__ && window.__TAURI__.event) {
+      window.__TAURI__.event.listen('clipboard-updated', async () => {
+        console.log('Clipboard updated event received');
+        await loadDirectories();
+        if (currentDirId) {
+          await loadHistory(currentDirId);
+        }
+      });
+    }
   } else {
     // Tauri 없을 때 (테스트)
     renderDirectories([]);
@@ -28,6 +39,13 @@ function initTauri() {
 window.showDirectoryView = function () {
   document.getElementById('view-items').classList.add('hidden');
   document.getElementById('view-directories').classList.remove('hidden');
+
+  // 화면 전환 시 첫 번째 디렉토리 자동 선택 (이미 선택된 게 없다면)
+  const dirs = document.querySelectorAll('.dir-item');
+  const selected = document.querySelector('.dir-item.selected');
+  if (dirs.length > 0 && !selected) {
+    selectDirItem(0);
+  }
 };
 
 // [히스토리 상세 화면 보여주기]
@@ -60,6 +78,11 @@ async function loadDirectories() {
 
     const filteredDirs = dirs.filter(dir => dir.name !== 'All Items');
     renderDirectories(filteredDirs);
+
+    // 첫 번째 디렉토리 자동 선택
+    if (filteredDirs.length > 0) {
+      selectDirItem(0);
+    }
   } catch (error) {
     console.error('Failed to load directories:', error);
     renderDirectories([]);
@@ -109,6 +132,11 @@ async function loadHistory(dirName) {
         <div class="item-meta">#${item.id} · ${new Date(item.created_at).toLocaleDateString()}</div>
       </div>
     `).join('');
+
+    // 첫 번째 아이템 자동 선택
+    if (items.length > 0) {
+      window.selectItem(0);
+    }
   } catch (error) {
     console.error('Failed to load history:', error);
     listDiv.innerHTML = `<div class="empty-state">로드 실패</div>`;
@@ -142,6 +170,12 @@ window.clearAll = function () {
 // 기존 script.js 코드 하단에 아래 키보드 이벤트 리스너 수정 및 추가
 
 window.addEventListener('keydown', async (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (invoke) await invoke('toggle_main_window');
+    return;
+  }
+
   const dirView = !document.getElementById('view-directories').classList.contains('hidden');
   const itemView = !document.getElementById('view-items').classList.contains('hidden');
 
@@ -162,35 +196,12 @@ window.addEventListener('keydown', async (event) => {
       event.preventDefault();
       let prevIndex = (selectedIndex - 1 + dirs.length) % dirs.length;
       selectDirItem(prevIndex);
-    } else if (event.key === 'Enter') {
+    } else if (event.key === 'Enter' || event.key === 'ArrowRight') {
       event.preventDefault();
       if (selectedIndex >= 0) {
         const dirName = dirs[selectedIndex].querySelector('.dir-name').textContent;
-        // 1) 디렉토리 화면에서 엔터 누르면 안으로 들어가기
+        // 디렉토리 화면에서 엔터나 오른쪽 방향키를 누르면 안으로 들어가기만 함
         await window.showItemView(dirName);
-
-        // 2) 현재 선택된 아이템 중 첫번째 아이템을 선택하고 paste_text로 붙여넣기 시도
-        // loadHistory가 async이므로 충분히 기다려졌다고 가정
-
-        // 1) 첫 아이템 선택
-        const items = document.querySelectorAll('.history-item');
-        if (items.length > 0) {
-          items.forEach(el => el.classList.remove('selected'));
-          items[0].classList.add('selected');
-
-          // 2) 클립보드에 텍스트 붙여넣기 invoke 호출
-          // history-item 내부 .item-content 텍스트 가져오기
-          const content = items[0].querySelector('.item-content').textContent;
-
-          // invoke가 초기화 되어있으면 호출
-          if (invoke) {
-            try {
-              await invoke('paste_text', { text: content });
-            } catch (err) {
-              console.error('Failed to paste text:', err);
-            }
-          }
-        }
       }
     }
   } else if (itemView) {
@@ -210,6 +221,9 @@ window.addEventListener('keydown', async (event) => {
       event.preventDefault();
       let prevIndex = (selectedIndex - 1 + items.length) % items.length;
       window.selectItem(prevIndex);
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      window.showDirectoryView();
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (selectedIndex >= 0) {
@@ -218,6 +232,8 @@ window.addEventListener('keydown', async (event) => {
         if (invoke) {
           try {
             await invoke('paste_text', { text: content });
+            // 붙여넣기 후 창 숨기기
+            await invoke('toggle_main_window');
           } catch (err) {
             console.error('Failed to paste text:', err);
           }

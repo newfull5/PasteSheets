@@ -61,7 +61,7 @@ pub fn get_clipboard_text() -> Option<String> {
     }
 }
 
-pub fn monitor_clipboard() {
+pub fn monitor_clipboard(app_handle: tauri::AppHandle) {
     thread::spawn(move || {
         let last_content = Arc::new(Mutex::new(String::new()));
         info!("Monitoring clipboard...");
@@ -74,6 +74,7 @@ pub fn monitor_clipboard() {
 
                 if current_text != *last && !current_text.trim().is_empty() {
                     info!("Clipboard content changed: {}", current_text.len());
+                    let mut changed = false;
 
                     match find_by_content(&current_text, CLIPBOARD_DEFAULT_DIRECTORY) {
                         Ok(Some(existing_item)) => {
@@ -85,6 +86,8 @@ pub fn monitor_clipboard() {
                                 CLIPBOARD_DEFAULT_DIRECTORY,
                             ) {
                                 error!("Failed to update content: {:?}", e);
+                            } else {
+                                changed = true;
                             }
                         }
                         Ok(None) => {
@@ -95,6 +98,7 @@ pub fn monitor_clipboard() {
                                 error!("Failed to save to database: {:?}", e);
                             } else {
                                 debug!("Saved new content to database");
+                                changed = true;
                             }
 
                             if let Err(e) = cleanup_old_items(CLIPBOARD_DEFAULT_DIRECTORY) {
@@ -103,6 +107,13 @@ pub fn monitor_clipboard() {
                         }
                         Err(e) => {
                             error!("Failed to check content: {:?}", e);
+                        }
+                    }
+
+                    if changed {
+                        use tauri::Emitter;
+                        if let Err(e) = app_handle.emit("clipboard-updated", ()) {
+                            error!("Failed to emit clipboard-updated event: {:?}", e);
                         }
                     }
 

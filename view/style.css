@@ -269,7 +269,8 @@ button:hover {
   /* 아주 연한 구분선 */
 }
 
-.dir-item:hover {
+.dir-item:hover,
+.dir-item.selected {
   background-color: var(--item-hover);
 }
 
@@ -287,7 +288,8 @@ button:hover {
 }
 
 /* 호버 시 폴더도 형광색으로 빛남 */
-.dir-item:hover::before {
+.dir-item:hover::before,
+.dir-item.selected::before {
   background-color: var(--accent);
   opacity: 1;
   box-shadow: 0 0 8px var(--accent);
