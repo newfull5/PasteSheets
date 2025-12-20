@@ -5,6 +5,8 @@ use modules::clipboard;
 use modules::db;
 use modules::hotkey;
 use modules::window_manager;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -76,6 +78,13 @@ pub fn run() {
                 .with_handler(hotkey::handle_shortcut)
                 .build(),
         )
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+            _ => {}
+        })
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -86,10 +95,44 @@ pub fn run() {
             }
             hotkey::save_current_app();
 
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             let _conn = db::init_db().expect("Failed to initialize database");
             info!("Database initialized");
             let db_path = db::get_path();
             debug!("Database path: {:?}", db_path);
+
+            // Tray Icon Setup
+            let quit_i = MenuItem::with_id(app, "quit", "Quit PasteSheet", true, None::<&str>)?;
+            let show_i = MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "show" => {
+                        window_manager::toggle_main_window(app);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Down,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        window_manager::toggle_main_window(app);
+                    }
+                })
+                .build(app)?;
 
             clipboard::monitor_clipboard(app.handle().clone());
             info!("Clipboard monitoring started");

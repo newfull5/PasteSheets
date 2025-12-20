@@ -14,8 +14,14 @@ pub fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
         let mut visible = IS_WINDOW_VISIBLE.lock().unwrap();
         let mut auto_hide = IS_AUTO_HIDE_ENABLED.lock().unwrap();
 
+        // 실제 윈도우의 상태와 플래그를 동기화 (예외 상황 대비)
+        let actual_visible = window.is_visible().unwrap_or(false);
+        if *visible != actual_visible {
+            *visible = actual_visible;
+        }
+
         if *visible {
-            // [상태: 숨김]
+            // [상태: 현재 보임 -> 숨김으로 변경]
             *visible = false;
             *auto_hide = false; // 단축키로 닫을 때 자동닫기 해제
                                 // 1. 프론트엔드에 애니메이션 시작 신호를 먼저 보냄
