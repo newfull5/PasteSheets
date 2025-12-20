@@ -111,6 +111,17 @@ body {
   flex-shrink: 0;
 }
 
+.header-row {
+  width: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+}
+
 .header-title-container {
   position: relative;
   flex: 1;
@@ -121,11 +132,16 @@ body {
 .app-header h1 {
   color: var(--accent);
   font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   margin: 0;
+  padding-left: 8px;
+  /* 통일된 여백 */
   pointer-events: none;
   transition: opacity 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-header h1.view-folder {
@@ -142,10 +158,11 @@ body {
   border: none;
   color: var(--accent);
   font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   outline: none;
-  padding: 0;
+  padding: 0 0 0 8px;
+  /* 타이틀 여백과 일치 */
   margin: 0;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -166,12 +183,8 @@ body {
 }
 
 
-h1 {
-  color: var(--accent);
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.5px;
-}
+/* 중복된 h1 스타일 제거 */
+
 
 /* 타이틀 옆 깜빡이는 커서 효과 */
 h1::after {

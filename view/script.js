@@ -208,7 +208,8 @@ async function startApp() {
     const mainTitle = document.getElementById('main-brand-title');
     const folderTitle = document.getElementById('current-folder-title');
 
-    const updateSearchUI = (input, title) => {
+    window.updateSearchUI = (input, title) => {
+      if (!input || !title) return;
       // 값이 있거나 포커스가 되어 있는 경우 타이틀을 완전히 숨겨서
       // '깨끗한 입력창'이 나타나도록 합니다.
       if (input.value || document.activeElement === input) {
@@ -271,7 +272,7 @@ window.showDirectoryView = function () {
   if (dirSearch) {
     dirSearch.value = '';
     filterDirectories();
-    if (mainTitle) mainTitle.style.opacity = '1';
+    if (window.updateSearchUI) window.updateSearchUI(dirSearch, mainTitle);
   }
 
   const dirs = document.querySelectorAll('.dir-item');
@@ -281,7 +282,7 @@ window.showDirectoryView = function () {
   }
 };
 
-window.showItemView = async function (dirName) {
+window.showItemView = async function (dirName, targetItemId = null) {
   document.getElementById('view-directories').classList.add('hidden');
   document.getElementById('view-items').classList.remove('hidden');
 
@@ -290,14 +291,14 @@ window.showItemView = async function (dirName) {
   const folderTitle = document.getElementById('current-folder-title');
   if (itemSearch) {
     itemSearch.value = '';
-    if (folderTitle) folderTitle.style.opacity = '1';
+    if (window.updateSearchUI) window.updateSearchUI(itemSearch, folderTitle);
   }
 
   const titleEl = document.getElementById('current-folder-title');
   titleEl.textContent = dirName;
 
   currentDirId = dirName;
-  await loadHistory(dirName);
+  await loadHistory(dirName, targetItemId);
 };
 
 // ---------------------------------------------------------
@@ -360,6 +361,7 @@ function renderDirectories(dirs, items = [], searchTerm = '') {
       const safeName = dir.name.replace(/'/g, "\\'");
       return `
         <div class="dir-item"
+             data-type="folder" data-name="${safeName}"
              onclick="showItemView('${safeName}')"
              oncontextmenu="showContextMenu(event, '${safeName}')"
              tabindex="0">
@@ -377,6 +379,7 @@ function renderDirectories(dirs, items = [], searchTerm = '') {
       const displayContent = item.content.length > 50 ? item.content.substring(0, 50) + '...' : item.content;
       return `
         <div class="dir-item search-result-item"
+             data-type="item" data-id="${item.id}" data-directory="${item.directory}"
              onclick="globalPaste('${item.content.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')"
              tabindex="0">
           <div style="display:flex; flex-direction:column; width:100%;">
@@ -420,7 +423,7 @@ window.globalPaste = async function (content) {
   }
 };
 
-async function loadHistory(dirName) {
+async function loadHistory(dirName, targetItemId = null) {
   const listDiv = document.getElementById('history-list');
   listDiv.innerHTML = '<div style="padding:20px; color:#666; text-align:center;">Loading...</div>';
 
@@ -431,14 +434,14 @@ async function loadHistory(dirName) {
       ? allItems
       : allItems.filter(item => item.directory.toLowerCase() === dirName.toLowerCase());
 
-    filterHistoryItems();
+    filterHistoryItems(targetItemId);
   } catch (error) {
     console.error('Failed to load history:', error);
     listDiv.innerHTML = '';
   }
 }
 
-function filterHistoryItems() {
+function filterHistoryItems(targetItemId = null) {
   const searchTerm = document.getElementById('item-search').value.toLowerCase();
   const items = currentDirectoryItems.filter(item =>
     (item.content && item.content.toLowerCase().includes(searchTerm)) ||
@@ -476,7 +479,12 @@ function filterHistoryItems() {
   listDiv.innerHTML = historyHtml + newItemHtml;
 
   if (items.length > 0) {
-    window.selectItem(0);
+    if (targetItemId) {
+      const targetIdx = items.findIndex(it => it.id == targetItemId);
+      window.selectItem(targetIdx >= 0 ? targetIdx : 0);
+    } else {
+      window.selectItem(0);
+    }
   }
 }
 
@@ -806,14 +814,13 @@ window.addEventListener('keydown', async (event) => {
     return;
   }
 
-  // 1. 입력창 포커스 중일 때는 글로벌 단축키 대부분을 무시 (ESC/Enter 등 필요한 것 제외)
+  // 1. 입력창 포커스 중일 때는 글로벌 단축키 대부분을 무시 (ESC/Enter/화살표 등 필요한 것 제외)
   if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-    if (event.key === 'Escape') {
-      // 입력창 자체의 onkeydown에서 처리하므로 여기선 통과
-    } else if (event.key === 'Enter') {
-      // 입력창에서 Enter 누르면 첫 결과 선택 등 추가 동작 가능
+    const allowedKeys = ['Escape', 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'];
+    if (allowedKeys.includes(event.key)) {
+      // 아래 네비게이션 로직에서 처리하도록 통과
     } else {
-      // 백스페이스, 화살표 등 입력창 본연의 동작을 방해하지 않도록 리턴
+      // 백스페이스 등 입력창 본연의 동작을 방해하지 않도록 리턴
       return;
     }
   }
@@ -902,13 +909,23 @@ window.addEventListener('keydown', async (event) => {
     } else if (event.key === 'Enter' || event.key === 'ArrowRight') {
       event.preventDefault();
       if (selectedIndex >= 0) {
-        const selectedDir = dirs[selectedIndex];
-        if (selectedDir.classList.contains('btn-new-folder')) {
+        const selectedEl = dirs[selectedIndex];
+        if (selectedEl.classList.contains('btn-new-folder')) {
           createDirectoryPrompt();
           return;
         }
-        const dirName = selectedDir.querySelector('.dir-name').textContent;
-        await window.showItemView(dirName);
+
+        const type = selectedEl.dataset.type;
+        if (type === 'item') {
+          // 검색 결과 아이템인 경우 해당 디렉토리로 이동 후 아이템 선택
+          const id = selectedEl.dataset.id;
+          const directory = selectedEl.dataset.directory;
+          await window.showItemView(directory, id);
+        } else {
+          // 일반 폴더인 경우
+          const dirName = selectedEl.dataset.name || selectedEl.querySelector('.dir-name').textContent;
+          await window.showItemView(dirName);
+        }
       }
     } else if ((event.metaKey || event.ctrlKey) && (event.key === 'Backspace' || event.key === 'Delete')) {
       event.preventDefault();
