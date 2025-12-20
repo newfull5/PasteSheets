@@ -112,24 +112,57 @@ pub fn init_db() -> Result<Connection> {
 }
 
 pub fn create_directory(name: &str) -> Result<i64> {
+    let trimmed_name = name.trim();
+    if trimmed_name.is_empty() {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
     let conn = Connection::open(get_path())?;
-    conn.execute("INSERT INTO directories (name) VALUES (?1)", [name])?;
+    conn.execute("INSERT INTO directories (name) VALUES (?1)", [trimmed_name])?;
     Ok(conn.last_insert_rowid())
 }
 
 pub fn rename_directory(old_name: &str, new_name: &str) -> Result<()> {
-    if old_name == "Clipboard" {
+    let old_trimmed = old_name.trim();
+    let new_trimmed = new_name.trim();
+
+    if old_trimmed == "Clipboard" || new_trimmed == "Clipboard" || new_trimmed.is_empty() {
         return Err(rusqlite::Error::InvalidQuery);
     }
-    let conn = Connection::open(get_path())?;
-    conn.execute(
+
+    log::info!("[DB] Rename start: '{}' -> '{}'", old_trimmed, new_trimmed);
+
+    let mut conn = Connection::open(get_path())?;
+
+    // 외래 키 제약 조건이 있으면 아이템이 들어있는 폴더의 이름 변경이 차단될 수 있습니다.
+    // 이를 일시적으로 끄고 두 테이블을 모두 업데이트한 뒤 다시 켭니다.
+    conn.execute("PRAGMA foreign_keys = OFF", [])?;
+
+    let tx = conn.transaction()?;
+
+    // 1. directories 테이블 업데이트
+    let affected_dirs = tx.execute(
         "UPDATE directories SET name = ?1 WHERE name = ?2",
-        [new_name, old_name],
+        [new_trimmed, old_trimmed],
     )?;
-    conn.execute(
+    log::info!("[DB] Affected directories: {}", affected_dirs);
+
+    if affected_dirs == 0 {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
+
+    // 2. paste_sheets 테이블 업데이트
+    let affected_items = tx.execute(
         "UPDATE paste_sheets SET directory = ?1 WHERE directory = ?2",
-        [new_name, old_name],
+        [new_trimmed, old_trimmed],
     )?;
+    log::info!("[DB] Affected paste items: {}", affected_items);
+
+    tx.commit()?;
+
+    // 외래 키 체크 다시 활성화
+    conn.execute("PRAGMA foreign_keys = ON", [])?;
+    log::info!("[DB] Rename committed successfully");
+
     Ok(())
 }
 
@@ -143,12 +176,12 @@ pub fn delete_directory(name: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn post_content(content: &str, directory: &str) -> Result<i64> {
+pub fn post_content(content: &str, directory: &str, memo: Option<&str>) -> Result<i64> {
     let conn = Connection::open(get_path())?;
 
     conn.execute(
-        "INSERT INTO paste_sheets (content, directory) VALUES (?1, ?2)",
-        [content, directory],
+        "INSERT INTO paste_sheets (content, directory, memo) VALUES (?1, ?2, ?3)",
+        rusqlite::params![content, directory, memo],
     )?;
 
     Ok(conn.last_insert_rowid())

@@ -444,23 +444,65 @@ button:hover {
   border-color: var(--accent);
 }
 
-/* 편집 모드 텍스트 영역 */
-.edit-area {
+/* 인라인 아이템 추가 */
+.btn-new-item.active {
+  background: rgba(220, 220, 87, 0.03);
+  align-items: stretch;
+  cursor: default;
+}
+
+.btn-new-item.active .item-body {
+  gap: 10px;
+  padding: 4px 0;
+}
+
+/* 편집 모드 및 인라인 입력 공통 */
+.edit-area,
+.inline-content {
   width: 100%;
-  min-height: 100px;
-  max-height: 300px;
-  /* 편집 창도 높이 제한 */
-  overflow-y: auto;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--accent);
-  color: var(--text-main);
-  border-radius: 4px;
-  padding: 8px;
-  font-size: 14px;
-  font-family: inherit;
+  min-height: 120px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(220, 220, 87, 0.2);
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  outline: none;
   resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.memo-area,
+.inline-memo {
+  width: 100%;
+  background: rgba(220, 220, 87, 0.05);
+  border: 1px solid rgba(220, 220, 87, 0.2);
+  color: var(--accent);
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
   outline: none;
   margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.edit-area:focus,
+.memo-area:focus,
+.inline-content:focus,
+.inline-memo:focus {
+  border-color: var(--accent);
+  background: rgba(220, 220, 87, 0.08);
+  box-shadow: 0 0 0 2px rgba(220, 220, 87, 0.1);
+}
+
+.inline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 
@@ -527,12 +569,34 @@ button:hover {
   border-radius: 10px;
 }
 
-/* 3. 새 폴더 추가 버튼 (하단 고정 스타일) */
+/* 3. 새 폴더 추가 버튼 (목록 내 인라인) */
 .btn-new-folder {
   border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-top: auto;
-  /* 상단 여백을 최대로 벌려 하단에 밀어넣음 (플렉스 컨테이너일 경우) */
+  margin-top: 12px;
   opacity: 0.8;
+  padding: 10px 12px;
+}
+
+.btn-new-folder.active {
+  background-color: rgba(220, 220, 87, 0.05);
+  opacity: 1;
+}
+
+.inline-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 15px;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+}
+
+.inline-input::placeholder {
+  color: var(--text-sub);
+  opacity: 0.5;
 }
 
 .btn-new-folder::before {

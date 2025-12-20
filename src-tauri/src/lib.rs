@@ -13,8 +13,12 @@ fn get_clipboard_history() -> Result<Vec<db::PasteItem>, String> {
 }
 
 #[tauri::command]
-fn create_history_item(content: String, directory: String) -> Result<i64, String> {
-    db::post_content(&content, &directory).map_err(|e| e.to_string())
+fn create_history_item(
+    content: String,
+    directory: String,
+    memo: Option<String>,
+) -> Result<i64, String> {
+    db::post_content(&content, &directory, memo.as_deref()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

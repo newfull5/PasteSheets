@@ -94,7 +94,7 @@ pub fn monitor_clipboard(app_handle: tauri::AppHandle) {
                         Ok(None) => {
                             // 없으면 새로 저장
                             if let Err(e) =
-                                db::post_content(&current_text, CLIPBOARD_DEFAULT_DIRECTORY)
+                                db::post_content(&current_text, CLIPBOARD_DEFAULT_DIRECTORY, None)
                             {
                                 error!("Failed to save to database: {:?}", e);
                             } else {

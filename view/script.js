@@ -103,28 +103,49 @@ function showModal({ title, text, inputPlaceholder, inputValue, confirmText, isD
 
 window.doRename = async function (e) {
   if (e) e.stopPropagation();
-  const dirName = targetDirName;
-  document.getElementById('context-menu').classList.add('hidden');
 
-  if (!dirName) return;
+  // 컨텍스트 메뉴를 닫음
+  const menu = document.getElementById('context-menu');
+  if (menu) menu.classList.add('hidden');
 
-  const newName = await showModal({
-    title: 'Folder Rename',
-    text: `'${dirName}' 폴더의 새 이름을 입력하세요:`,
-    inputPlaceholder: 'New folder name...',
-    inputValue: dirName,
-    confirmText: 'Rename'
-  });
+  const dirName = (targetDirName || "").trim();
+  console.log(`[DEBUG] doRename called. targetDirName: "${dirName}"`);
 
-  if (newName && newName.trim() && newName !== dirName) {
-    try {
-      console.log(`Invoking rename_directory: ${dirName} -> ${newName.trim()}`);
-      await invoke('rename_directory', { oldName: dirName, newName: newName.trim() });
+  if (!dirName) {
+    alert("대상 폴더를 찾을 수 없습니다. 다시 시도해 주세요.");
+    return;
+  }
+
+  try {
+    const newName = await showModal({
+      title: 'Folder Rename',
+      text: `'${dirName}' 폴더의 새 이름을 입력하세요:`,
+      inputPlaceholder: 'New folder name...',
+      inputValue: dirName,
+      confirmText: 'Rename'
+    });
+
+    if (newName && newName.trim() && newName.trim() !== dirName) {
+      const renamed = newName.trim();
+      console.log(`[DEBUG] Invoking rename: "${dirName}" -> "${renamed}"`);
+
+      await invoke('rename_directory', { oldName: dirName, newName: renamed });
+
+      if (currentDirId === dirName) {
+        currentDirId = renamed;
+        const titleEl = document.getElementById('current-folder-title');
+        if (titleEl) titleEl.textContent = renamed;
+      }
+
       await loadDirectories();
-    } catch (err) {
-      console.error('Rename failed:', err);
-      alert('이름 변경 실패: ' + err);
+      if (!document.getElementById('view-items').classList.contains('hidden')) {
+        await loadHistory(currentDirId);
+      }
+      alert(`폴더 이름이 "${renamed}"(으)로 변경되었습니다.`);
     }
+  } catch (err) {
+    console.error('[Rename Error]', err);
+    alert('이름 변경 중 오류가 발생했습니다: ' + err);
   }
 };
 
@@ -155,46 +176,39 @@ window.doDelete = async function (e, name) {
 };
 
 
-// 1. 초기화
-window.addEventListener('DOMContentLoaded', async () => {
+// 1. 초기화 함수
+async function startApp() {
   if (initTauri()) {
-    await loadDirectories(); // 실제 DB에서 로드
+    console.log('Tauri initialized, loading directories...');
+    await loadDirectories();
 
-    // 애니메이션 트리거: 윈도우가 보여질 때 동작
     const container = document.querySelector('.container');
-
     if (window.__TAURI__) {
       const { listen } = window.__TAURI__.event;
-
-      listen('tauri://focus', () => {
-        setTimeout(() => container.classList.add('visible'), 20);
-      });
-
-      listen('tauri://blur', () => {
-      });
-
+      listen('tauri://focus', () => setTimeout(() => container.classList.add('visible'), 20));
       listen('window-visible', (event) => {
-        if (event.payload) {
-          setTimeout(() => container.classList.add('visible'), 20);
-        } else {
-          container.classList.remove('visible');
-        }
+        if (event.payload) setTimeout(() => container.classList.add('visible'), 20);
+        else container.classList.remove('visible');
       });
-    }
 
-    if (window.__TAURI__ && window.__TAURI__.event) {
       window.__TAURI__.event.listen('clipboard-updated', async () => {
         console.log('Clipboard updated event received');
         await loadDirectories();
-        if (currentDirId) {
-          await loadHistory(currentDirId);
-        }
+        if (currentDirId) await loadHistory(currentDirId);
       });
     }
   } else {
+    console.warn('Tauri not found, rendering empty list');
     renderDirectories([]);
   }
-});
+}
+
+// 스크립트 로드 시 즉시 또는 DOMContentLoaded에 실행
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}
 
 function initTauri() {
   if (window.__TAURI__ && window.__TAURI__.core) {
@@ -299,9 +313,9 @@ async function loadHistory(dirName) {
   try {
     const allItems = await invoke('get_clipboard_history');
 
-    const items = dirName === 'All Items'
+    const items = (dirName === 'All Items' || !dirName)
       ? allItems
-      : allItems.filter(item => item.directory === dirName);
+      : allItems.filter(item => item.directory.toLowerCase() === dirName.toLowerCase());
 
     const historyHtml = items.length === 0
       ? ''
@@ -530,72 +544,122 @@ window.clearAll = function () {
 };
 
 window.createDirectoryPrompt = function () {
-  const container = document.getElementById('dir-input-container');
-  const input = document.getElementById('new-dir-name');
   const btnNewFolder = document.querySelector('.btn-new-folder');
+  if (!btnNewFolder || btnNewFolder.classList.contains('active')) return;
 
-  container.classList.remove('hidden');
-  if (btnNewFolder) btnNewFolder.classList.add('hidden');
+  const originalHtml = btnNewFolder.innerHTML;
+  btnNewFolder.classList.add('active');
+  btnNewFolder.innerHTML = `
+    <input type="text" class="inline-input" placeholder="Folder Name..." spellcheck="false">
+  `;
+
+  const input = btnNewFolder.querySelector('input');
   input.focus();
 
+  const closeInline = () => {
+    btnNewFolder.classList.remove('active');
+    btnNewFolder.innerHTML = originalHtml;
+  };
+
+  input.onblur = closeInline;
+
   input.onkeydown = async (e) => {
+    e.stopPropagation();
     if (e.key === 'Enter') {
-      e.stopPropagation();
       const name = input.value.trim();
       if (name) {
         try {
           await invoke('create_directory', { name });
-          input.value = '';
-          container.classList.add('hidden');
           await loadDirectories();
         } catch (error) {
           console.error('Failed to create directory:', error);
           alert('폴더 생성 실패: ' + error);
+          closeInline();
         }
+      } else {
+        closeInline();
       }
     } else if (e.key === 'Escape') {
-      e.stopPropagation();
-      input.value = '';
-      container.classList.add('hidden');
-      if (btnNewFolder) btnNewFolder.classList.remove('hidden');
+      closeInline();
     }
   };
 };
 
 window.createHistoryItemPrompt = function () {
-  const container = document.getElementById('item-input-container');
-  const textarea = document.getElementById('new-item-content');
   const btnNewItem = document.querySelector('.btn-new-item');
+  if (!btnNewItem || btnNewItem.classList.contains('active')) return;
 
-  container.classList.remove('hidden');
-  if (btnNewItem) btnNewItem.classList.add('hidden');
-  textarea.focus();
+  const originalHtml = btnNewItem.innerHTML;
+  btnNewItem.classList.add('active');
 
-  container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  btnNewItem.innerHTML = `
+    <div class="item-body">
+      <input type="text" class="inline-memo" placeholder="Memo (Optional)..." spellcheck="false">
+      <textarea class="inline-content" placeholder="Content (⌘+Enter to save)..." spellcheck="false"></textarea>
+      <div class="inline-actions">
+        <button class="btn-mini primary btn-save-inline">Save</button>
+        <button class="btn-mini btn-cancel-inline">Cancel</button>
+      </div>
+    </div>
+  `;
 
-  textarea.onkeydown = async (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.stopPropagation();
-      const content = textarea.value.trim();
-      if (content) {
-        try {
-          const dir = (currentDirId === 'All Items' || !currentDirId) ? 'Clipboard' : currentDirId;
-          await invoke('create_history_item', { content, directory: dir });
-          textarea.value = '';
-          container.classList.add('hidden');
-          if (btnNewItem) btnNewItem.classList.remove('hidden');
-          await loadHistory(currentDirId);
-          await loadDirectories();
-        } catch (error) {
-          console.error('Failed to create history item:', error);
-          alert('아이템 추가 실패: ' + error);
-        }
+  const memoInput = btnNewItem.querySelector('.inline-memo');
+  const contentArea = btnNewItem.querySelector('.inline-content');
+  const saveBtn = btnNewItem.querySelector('.btn-save-inline');
+  const cancelBtn = btnNewItem.querySelector('.btn-cancel-inline');
+
+  memoInput.focus();
+
+  const closeInline = () => {
+    btnNewItem.classList.remove('active');
+    btnNewItem.innerHTML = originalHtml;
+  };
+
+  const onSave = async () => {
+    const content = contentArea.value.trim();
+    const memo = memoInput.value.trim();
+    if (content) {
+      try {
+        const dir = (currentDirId === 'All Items' || !currentDirId) ? 'Clipboard' : currentDirId;
+        await invoke('create_history_item', { content, directory: dir, memo: memo || null });
+        await loadHistory(currentDirId);
+        await loadDirectories();
+      } catch (error) {
+        console.error('Failed to create item:', error);
+        alert('아이템 추가 실패: ' + error);
+        closeInline();
       }
+    } else {
+      closeInline();
+    }
+  };
+
+  saveBtn.onclick = (e) => {
+    e.stopPropagation();
+    onSave();
+  };
+  cancelBtn.onclick = (e) => {
+    e.stopPropagation();
+    closeInline();
+  };
+
+  memoInput.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      contentArea.focus();
     } else if (e.key === 'Escape') {
-      e.stopPropagation();
-      textarea.value = '';
-      container.classList.add('hidden');
-      if (btnNewItem) btnNewItem.classList.remove('hidden');
+      closeInline();
+    }
+  };
+
+  contentArea.onkeydown = (e) => {
+    e.stopPropagation();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      onSave();
+    } else if (e.key === 'Escape') {
+      closeInline();
     }
   };
 };
@@ -746,9 +810,13 @@ window.addEventListener('keydown', async (event) => {
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (selectedItem) {
-        const buttons = selectedItem.querySelectorAll('.item-actions .btn-mini');
-        if (buttons[currentActionIndex]) {
-          buttons[currentActionIndex].click();
+        if (selectedItem.classList.contains('btn-new-item')) {
+          selectedItem.click();
+        } else {
+          const buttons = selectedItem.querySelectorAll('.item-actions .btn-mini');
+          if (buttons[currentActionIndex]) {
+            buttons[currentActionIndex].click();
+          }
         }
       }
     } else if ((event.metaKey || event.ctrlKey) && (event.key === 'Backspace' || event.key === 'Delete')) {

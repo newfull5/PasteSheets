@@ -101,6 +101,7 @@ fn set_window_position<R: Runtime>(app: &AppHandle<R>) {
         }
     }
 }
+#[allow(dead_code)]
 pub fn stop_mouse_edge_monitor() {
     debug!("🛑 Mouse edge detection stopped");
 }
