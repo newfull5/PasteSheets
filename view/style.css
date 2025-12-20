@@ -198,8 +198,13 @@ button:hover {
 }
 
 .content-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  background: rgba(220, 220, 87, 0.2);
+  /* 흰색 대신 테마색(노란색) 투명하게 변경 */
+  border-radius: 10px;
+}
+
+.content-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(220, 220, 87, 0.4);
 }
 
 .empty-state {
@@ -249,8 +254,7 @@ button:hover {
   background-color: rgba(220, 220, 87, 0.08);
   align-items: stretch;
   max-height: 800px;
-  min-height: 500px;
-  /* 더 넉넉하게 확장 */
+  min-height: fit-content;
   overflow: visible;
 }
 
@@ -333,11 +337,18 @@ button:hover {
 /* 텍스트 영역 스크롤바 디자인 */
 .history-item.selected .item-content::-webkit-scrollbar {
   width: 4px;
+  height: 0;
+  /* 가로 스크롤바(노란 영역) 제거 */
 }
 
 .history-item.selected .item-content::-webkit-scrollbar-thumb {
   background: rgba(220, 220, 87, 0.3);
-  border-radius: 2px;
+  border-radius: 10px;
+}
+
+.history-item.selected .item-content::-webkit-scrollbar-corner {
+  background: transparent;
+  /* 하얀색 점(코너) 제거 */
 }
 
 .item-meta {
