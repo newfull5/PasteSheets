@@ -247,11 +247,11 @@ button:hover {
 
 .history-item.selected {
   background-color: rgba(220, 220, 87, 0.08);
-  padding: 20px 16px;
-  /* 선택 시 더 넉넉한 여백 */
   align-items: stretch;
-  max-height: 450px;
-  overflow: hidden;
+  max-height: 800px;
+  min-height: 500px;
+  /* 더 넉넉하게 확장 */
+  overflow: visible;
 }
 
 /* 왼쪽 네온 바 (Bar) */
@@ -316,12 +316,18 @@ button:hover {
   /* 선택 시에는 다시 선명하게 */
   white-space: pre-wrap;
   overflow-y: auto;
-  max-height: 300px;
+  max-height: 350px;
   padding-right: 6px;
   margin-bottom: 16px;
   /* 하단 요소와의 여백 */
   line-height: 1.6;
   /* 행간을 넓혀 답답함 해소 */
+  flex: none;
+  /* 높이 압축 방지 */
+  height: auto;
+  text-overflow: clip;
+  /* 말줄임표 제거 */
+  overflow-x: visible;
 }
 
 /* 텍스트 영역 스크롤바 디자인 */
@@ -362,6 +368,9 @@ button:hover {
   width: 100%;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 12px;
+  padding-bottom: 4px;
+  /* 버튼 하단에 살짝 여유 공간 추가 */
+  flex-shrink: 0;
 }
 
 .history-item.selected .item-actions {
