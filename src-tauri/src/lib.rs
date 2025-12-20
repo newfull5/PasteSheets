@@ -13,6 +13,11 @@ fn get_clipboard_history() -> Result<Vec<db::PasteItem>, String> {
 }
 
 #[tauri::command]
+fn create_history_item(content: String, directory: String) -> Result<i64, String> {
+    db::post_content(&content, &directory).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn paste_text(text: String) -> Result<(), String> {
     clipboard::paste_text(text)
 }
@@ -103,7 +108,8 @@ pub fn run() {
             paste_text,
             toggle_main_window,
             update_history_item,
-            delete_history_item
+            delete_history_item,
+            create_history_item
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

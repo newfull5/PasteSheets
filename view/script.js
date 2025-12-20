@@ -303,18 +303,15 @@ async function loadHistory(dirName) {
       ? allItems
       : allItems.filter(item => item.directory === dirName);
 
-    if (items.length === 0) {
-      listDiv.innerHTML = `<div class="empty-state">비어있음</div>`;
-      return;
-    }
-
-    listDiv.innerHTML = items.map((item, index) => `
+    const historyHtml = items.length === 0
+      ? ''
+      : items.map((item, index) => `
       <div class="history-item" onclick="if(!this.classList.contains('editing')) selectItem(${index})" data-id="${item.id}" data-memo="${escapeHtml(item.memo || '')}">
         <div class="item-body">
           ${item.memo ? `<div class="item-memo">${escapeHtml(item.memo)}</div>` : ''}
           <div class="item-content">${escapeHtml(item.content)}</div>
           <div class="item-meta">
-            <span>#${item.id} · ${formatDate(item.created_at)}</span>
+            <span>${formatDate(item.created_at)}</span>
           </div>
           <div class="item-actions">
             <button class="btn-mini primary" onclick="pasteItemByIndex(${index}); event.stopPropagation();">Paste</button>
@@ -325,12 +322,22 @@ async function loadHistory(dirName) {
       </div>
     `).join('');
 
+    const newItemHtml = `
+      <div class="history-item btn-new-folder btn-new-item" onclick="createHistoryItemPrompt(); event.stopPropagation();" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub); min-height: 44px;">
+        <div class="item-body">
+          <div class="item-content" style="font-size: 14px; color: var(--accent); opacity: 0.8;"> New Item </div>
+        </div>
+      </div>
+    `;
+
+    listDiv.innerHTML = historyHtml + newItemHtml;
+
     if (items.length > 0) {
       window.selectItem(0);
     }
   } catch (error) {
     console.error('Failed to load history:', error);
-    listDiv.innerHTML = `<div class="empty-state">로드 실패</div>`;
+    listDiv.innerHTML = `< div class="empty-state" > 로드 실패</div > `;
   }
 }
 
@@ -343,7 +350,7 @@ function escapeHtml(text) {
 function formatDate(dateStr) {
   const d = new Date(dateStr);
   const pad = (n) => n.toString().padStart(2, '0');
-  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())} `;
 }
 
 window.selectItem = function (index) {
@@ -551,6 +558,44 @@ window.createDirectoryPrompt = function () {
       input.value = '';
       container.classList.add('hidden');
       if (btnNewFolder) btnNewFolder.classList.remove('hidden');
+    }
+  };
+};
+
+window.createHistoryItemPrompt = function () {
+  const container = document.getElementById('item-input-container');
+  const textarea = document.getElementById('new-item-content');
+  const btnNewItem = document.querySelector('.btn-new-item');
+
+  container.classList.remove('hidden');
+  if (btnNewItem) btnNewItem.classList.add('hidden');
+  textarea.focus();
+
+  container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+  textarea.onkeydown = async (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.stopPropagation();
+      const content = textarea.value.trim();
+      if (content) {
+        try {
+          const dir = (currentDirId === 'All Items' || !currentDirId) ? 'Clipboard' : currentDirId;
+          await invoke('create_history_item', { content, directory: dir });
+          textarea.value = '';
+          container.classList.add('hidden');
+          if (btnNewItem) btnNewItem.classList.remove('hidden');
+          await loadHistory(currentDirId);
+          await loadDirectories();
+        } catch (error) {
+          console.error('Failed to create history item:', error);
+          alert('아이템 추가 실패: ' + error);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      e.stopPropagation();
+      textarea.value = '';
+      container.classList.add('hidden');
+      if (btnNewItem) btnNewItem.classList.remove('hidden');
     }
   };
 };

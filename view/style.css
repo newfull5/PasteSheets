@@ -238,6 +238,8 @@ button:hover {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  /* 수직 중앙 정렬 추가 */
   overflow: hidden;
   width: 100%;
 }
@@ -297,8 +299,10 @@ button:hover {
   /* 약간 부드러운 노란색(Cream) */
   letter-spacing: 0.03em;
   /* 자간 확보 */
-  margin-bottom: 8px;
-  /* 본문과의 간격 */
+  line-height: 1.4;
+  /* 행간 추가로 시각적 안정감 부여 */
+  margin-bottom: 4px;
+  /* 본문과의 간격 살짝 축소 */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -322,6 +326,7 @@ button:hover {
   overflow-y: auto;
   max-height: 350px;
   padding-right: 6px;
+  margin-top: 4px;
   margin-bottom: 16px;
   /* 하단 요소와의 여백 */
   line-height: 1.6;
@@ -332,6 +337,12 @@ button:hover {
   text-overflow: clip;
   /* 말줄임표 제거 */
   overflow-x: visible;
+}
+
+/* New Item 버튼 전용: 하단 여백 제거 (중앙 정렬 유지) */
+.btn-new-item .item-content {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* 텍스트 영역 스크롤바 디자인 */
@@ -363,9 +374,9 @@ button:hover {
 .history-item.selected .item-meta {
   display: flex;
   /* 선택 시에만 표시 */
-  margin-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 8px;
+  padding-bottom: 8px;
   width: 100%;
   justify-content: space-between;
   align-items: center;
@@ -375,7 +386,6 @@ button:hover {
 .item-actions {
   display: none;
   gap: 8px;
-  margin-top: 12px;
   width: 100%;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 12px;
