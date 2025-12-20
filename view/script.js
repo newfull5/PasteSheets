@@ -23,6 +23,7 @@ window.showContextMenu = function (e, dirName) {
 
   const delBtn = document.getElementById('menu-delete');
   const renameBtn = document.getElementById('menu-rename');
+
   if (dirName === 'Clipboard') {
     if (delBtn) delBtn.style.display = 'none';
     if (renameBtn) renameBtn.style.display = 'none';
@@ -61,7 +62,7 @@ function showModal({ title, text, inputPlaceholder, inputValue, confirmText, isD
       overlay.classList.add('hidden');
       confirmBtn.removeEventListener('click', onConfirm);
       cancelBtn.removeEventListener('click', onCancel);
-      overlay.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown);
     };
 
     const onConfirm = () => {
@@ -89,7 +90,7 @@ function showModal({ title, text, inputPlaceholder, inputValue, confirmText, isD
 
     confirmBtn.addEventListener('click', onConfirm);
     cancelBtn.addEventListener('click', onCancel);
-    overlay.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
 
     overlay.classList.remove('hidden');
 
@@ -118,8 +119,6 @@ window.doRename = async function (e) {
   if (newName && newName.trim() && newName !== dirName) {
     try {
       console.log(`Invoking rename_directory: ${dirName} -> ${newName.trim()}`);
-      // Tauri 2에서는 인자 이름을 camelCase로 맞춰야 할 수 있음.
-      // Rust에서 old_name, new_name이므로 JS에서는 oldName, newName 사용 권장.
       await invoke('rename_directory', { oldName: dirName, newName: newName.trim() });
       await loadDirectories();
     } catch (err) {
@@ -129,12 +128,12 @@ window.doRename = async function (e) {
   }
 };
 
-window.doDelete = async function (e) {
+window.doDelete = async function (e, name) {
   if (e) e.stopPropagation();
-  const dirName = targetDirName;
+  const dirName = name || targetDirName;
   document.getElementById('context-menu').classList.add('hidden');
 
-  if (!dirName) return;
+  if (!dirName || dirName === 'All Items' || dirName === 'Clipboard') return;
 
   const result = await showModal({
     title: 'Folder Delete',
@@ -164,21 +163,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 애니메이션 트리거: 윈도우가 보여질 때 동작
     const container = document.querySelector('.container');
 
-    // [추가] Tauri 창이 포커스를 받거나 명시적으로 보여질 때 애니메이션 시작
     if (window.__TAURI__) {
       const { listen } = window.__TAURI__.event;
 
-      // 창이 포커스될 때 (show() 호출 시 보통 발생)
       listen('tauri://focus', () => {
         setTimeout(() => container.classList.add('visible'), 20);
       });
 
-      // 창이 블러될 때 (선택사항: 닫힐 때 애니메이션을 미리 빼두고 싶다면)
       listen('tauri://blur', () => {
-        // container.classList.remove('visible'); // 아예 사라지게 하려면 주석 해제
       });
 
-      // 백엔드에서 명시적으로 보내는 이벤트 (커스텀)
       listen('window-visible', (event) => {
         if (event.payload) {
           setTimeout(() => container.classList.add('visible'), 20);
@@ -188,7 +182,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // 백엔드에서 클립보드 변경 이벤트 감지
     if (window.__TAURI__ && window.__TAURI__.event) {
       window.__TAURI__.event.listen('clipboard-updated', async () => {
         console.log('Clipboard updated event received');
@@ -199,7 +192,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       });
     }
   } else {
-    // Tauri 없을 때 (테스트)
     renderDirectories([]);
   }
 });
@@ -216,12 +208,10 @@ function initTauri() {
 // 화면 전환 로직 (핵심)
 // ---------------------------------------------------------
 
-// [폴더 목록 화면 보여주기]
 window.showDirectoryView = function () {
   document.getElementById('view-items').classList.add('hidden');
   document.getElementById('view-directories').classList.remove('hidden');
 
-  // 화면 전환 시 첫 번째 디렉토리 자동 선택 (이미 선택된 게 없다면)
   const dirs = document.querySelectorAll('.dir-item');
   const selected = document.querySelector('.dir-item.selected');
   if (dirs.length > 0 && !selected) {
@@ -229,16 +219,13 @@ window.showDirectoryView = function () {
   }
 };
 
-// [히스토리 상세 화면 보여주기]
 window.showItemView = async function (dirName) {
   document.getElementById('view-directories').classList.add('hidden');
   document.getElementById('view-items').classList.remove('hidden');
 
-  // 제목 업데이트
   const titleEl = document.getElementById('current-folder-title');
   titleEl.textContent = dirName;
 
-  // 데이터 로드
   currentDirId = dirName;
   await loadHistory(dirName);
 };
@@ -249,11 +236,9 @@ window.showItemView = async function (dirName) {
 
 async function loadDirectories() {
   try {
-    // DB에서 실제 디렉토리 목록과 개수 로드
     const directories = await invoke('get_directories');
     const allItems = await invoke('get_clipboard_history');
 
-    // "Clipboard" 디렉토리를 가장 상단으로 정렬
     directories.sort((a, b) => {
       if (a.name === 'Clipboard') return -1;
       if (b.name === 'Clipboard') return 1;
@@ -265,11 +250,9 @@ async function loadDirectories() {
       ...directories
     ];
 
-    // 'All Items'는 현재 제외하고 렌더링하도록 유지 (필요 시 수정 가능)
     const filteredDirs = dirs.filter(dir => dir.name !== 'All Items');
     renderDirectories(filteredDirs);
 
-    // 첫 번째 디렉토리 자동 선택
     if (filteredDirs.length > 0) {
       selectDirItem(0);
     }
@@ -286,13 +269,11 @@ function renderDirectories(dirs) {
   if (dirs.length === 0) {
     directoryHtml = '<div class="empty-state">디렉토리가 없습니다</div>';
   } else {
-    // 기존 디자인(.history-item)과 통일감을 주는 .dir-item 구조
     directoryHtml = dirs.map(dir => {
       const safeName = dir.name.replace(/'/g, "\\'");
       return `
         <div class="dir-item"
              onclick="showItemView('${safeName}')"
-             onkeydown="if(event.key==='Enter') showItemView('${safeName}')"
              oncontextmenu="showContextMenu(event, '${safeName}')"
              tabindex="0">
           <span class="dir-name">${dir.name}</span>
@@ -303,7 +284,7 @@ function renderDirectories(dirs) {
   }
 
   const newFolderHtml = `
-    <div class="dir-item btn-new-folder" onclick="createDirectoryPrompt(); event.stopPropagation();" onkeydown="if(event.key==='Enter') { createDirectoryPrompt(); event.stopPropagation(); }" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub);">
+    <div class="dir-item btn-new-folder" onclick="createDirectoryPrompt(); event.stopPropagation();" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub);">
       <span class="dir-name" style="font-size: 14px;"> New Folder </span>
     </div>
   `;
@@ -316,27 +297,24 @@ async function loadHistory(dirName) {
   listDiv.innerHTML = '<div style="padding:20px; color:#666; text-align:center;">Loading...</div>';
 
   try {
-    // Rust 백엔드에서 실제 데이터 가져오기
     const allItems = await invoke('get_clipboard_history');
 
-    // dirName이 'All Items'이면 모든 항목 표시, 아니면 필터링
     const items = dirName === 'All Items'
       ? allItems
       : allItems.filter(item => item.directory === dirName);
 
-    // 비어있을 때
     if (items.length === 0) {
       listDiv.innerHTML = `<div class="empty-state">비어있음</div>`;
       return;
     }
 
-    // 리스트 렌더링
     listDiv.innerHTML = items.map((item, index) => `
-      <div class="history-item" onclick="if(!this.classList.contains('editing')) selectItem(${index})" data-id="${item.id}">
+      <div class="history-item" onclick="if(!this.classList.contains('editing')) selectItem(${index})" data-id="${item.id}" data-memo="${escapeHtml(item.memo || '')}">
         <div class="item-body">
+          ${item.memo ? `<div class="item-memo">${escapeHtml(item.memo)}</div>` : ''}
           <div class="item-content">${escapeHtml(item.content)}</div>
           <div class="item-meta">
-            <span>${new Date(item.created_at).toLocaleDateString()}</span>
+            <span>#${item.id} · ${formatDate(item.created_at)}</span>
           </div>
           <div class="item-actions">
             <button class="btn-mini primary" onclick="pasteItemByIndex(${index}); event.stopPropagation();">Paste</button>
@@ -347,7 +325,6 @@ async function loadHistory(dirName) {
       </div>
     `).join('');
 
-    // 첫 번째 아이템 자동 선택
     if (items.length > 0) {
       window.selectItem(0);
     }
@@ -357,17 +334,21 @@ async function loadHistory(dirName) {
   }
 }
 
-// 유틸리티 (기존 유지)
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 window.selectItem = function (index) {
   const all = document.querySelectorAll('.history-item');
 
-  // 편집 중인 항목이 있으면 취소 (선택 이동 시)
   const editingItem = document.querySelector('.history-item.editing');
   if (editingItem) {
     cancelEdit(editingItem);
@@ -378,7 +359,6 @@ window.selectItem = function (index) {
     all[index].classList.add('selected');
     all[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    // 액션 인덱스 초기화 및 UI 업데이트
     currentActionIndex = 0;
     updateActionButtonsUI(all[index]);
   }
@@ -419,27 +399,68 @@ window.editHistoryItem = function (index) {
   item.classList.add('editing');
   const contentDiv = item.querySelector('.item-content');
   const currentText = contentDiv.textContent;
+  const currentMemo = item.dataset.memo || '';
 
-  // textarea로 교체
+  const memoInput = document.createElement('input');
+  memoInput.className = 'memo-area';
+  memoInput.value = currentMemo;
+  memoInput.placeholder = '메모 입력 (선택 사항)...';
+
+  const oldMemoDiv = item.querySelector('.item-memo');
+  if (oldMemoDiv) oldMemoDiv.style.display = 'none';
+
+  contentDiv.parentNode.insertBefore(memoInput, contentDiv);
+
   contentDiv.style.display = 'none';
   const textarea = document.createElement('textarea');
   textarea.className = 'edit-area';
   textarea.value = currentText;
   contentDiv.parentNode.insertBefore(textarea, contentDiv);
-  textarea.focus();
 
-  // 액션 버튼 변경
+  const autoResize = () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+  };
+
+  textarea.addEventListener('input', autoResize);
+  setTimeout(autoResize, 0);
+
+  memoInput.focus();
+
+  const handleShortcut = (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      saveHistoryItem(index);
+    }
+  };
+
+  memoInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      textarea.focus();
+    }
+    handleShortcut(e);
+  });
+
+  textarea.addEventListener('keydown', handleShortcut);
+
   const actionDiv = item.querySelector('.item-actions');
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const hint = isMac ? '⌘+Enter' : 'Ctrl+Enter';
+
   actionDiv.innerHTML = `
-    <button class="btn-mini primary" onclick="saveHistoryItem(${index}); event.stopPropagation();">Save</button>
+    <button class="btn-mini primary" onclick="saveHistoryItem(${index}); event.stopPropagation();">Save (${hint})</button>
     <button class="btn-mini" onclick="cancelEditByIndex(${index}); event.stopPropagation();">Cancel</button>
   `;
+
+  setTimeout(() => {
+    item.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, 100);
 };
 
 window.cancelEditByIndex = function (index) {
   const items = document.querySelectorAll('.history-item');
   cancelEdit(items[index]);
-  // 버튼 복구 위해 다시 로드 (간단하게)
   if (currentDirId) loadHistory(currentDirId);
 };
 
@@ -447,9 +468,15 @@ function cancelEdit(itemEl) {
   if (!itemEl) return;
   itemEl.classList.remove('editing');
   const textarea = itemEl.querySelector('.edit-area');
+  const memoInput = itemEl.querySelector('.memo-area');
   if (textarea) textarea.remove();
+  if (memoInput) memoInput.remove();
+
   const contentDiv = itemEl.querySelector('.item-content');
   if (contentDiv) contentDiv.style.display = 'block';
+
+  const memoDiv = itemEl.querySelector('.item-memo');
+  if (memoDiv) memoDiv.style.display = 'block';
 }
 
 window.saveHistoryItem = async function (index) {
@@ -457,12 +484,14 @@ window.saveHistoryItem = async function (index) {
   const item = items[index];
   const id = item.dataset.id;
   const newContent = item.querySelector('.edit-area').value;
+  const newMemo = item.querySelector('.memo-area').value;
 
   try {
     await invoke('update_history_item', {
       id: parseInt(id),
       content: newContent,
-      directory: currentDirId === 'All Items' ? 'Clipboard' : currentDirId // 간단한 로직
+      directory: currentDirId === 'All Items' ? 'Clipboard' : currentDirId,
+      memo: newMemo || null
     });
     await loadHistory(currentDirId);
   } catch (err) {
@@ -504,7 +533,7 @@ window.createDirectoryPrompt = function () {
 
   input.onkeydown = async (e) => {
     if (e.key === 'Enter') {
-      e.stopPropagation(); // 전역 키 이벤트 전파 방지
+      e.stopPropagation();
       const name = input.value.trim();
       if (name) {
         try {
@@ -518,7 +547,7 @@ window.createDirectoryPrompt = function () {
         }
       }
     } else if (e.key === 'Escape') {
-      e.stopPropagation(); // 전역 키 이벤트 전파 방지
+      e.stopPropagation();
       input.value = '';
       container.classList.add('hidden');
       if (btnNewFolder) btnNewFolder.classList.remove('hidden');
@@ -526,29 +555,18 @@ window.createDirectoryPrompt = function () {
   };
 };
 
-// 컨텍스트 메뉴 로직은 상단으로 이동됨
-
-// 메뉴 밖 클릭 시 숨기기
 window.addEventListener('click', () => {
   const menu = document.getElementById('context-menu');
   menu.classList.add('hidden');
 });
 
 window.addEventListener('contextmenu', (e) => {
-  // 디렉토리가 아닌 곳에서 우클릭 시 메뉴 숨기기
   if (!e.target.closest('.dir-item')) {
     document.getElementById('context-menu').classList.add('hidden');
   }
 });
 
-// 하단에 있던 중복 및 인자 오류가 있던 리스너 제거
-
-
-
-// 기존 script.js 코드 하단에 아래 키보드 이벤트 리스너 수정 및 추가
-
 window.addEventListener('keydown', async (event) => {
-  // 모달이 열려있으면 메인 키보드 이벤트 무시
   const modalOverlay = document.getElementById('modal-overlay');
   if (modalOverlay && !modalOverlay.classList.contains('hidden')) {
     return;
@@ -556,8 +574,32 @@ window.addEventListener('keydown', async (event) => {
 
   if (event.key === 'Escape') {
     event.preventDefault();
+
+    const editingItem = document.querySelector('.history-item.editing');
+    if (editingItem) {
+      const allItems = document.querySelectorAll('.history-item');
+      const index = Array.from(allItems).indexOf(editingItem);
+      if (index >= 0) {
+        cancelEditByIndex(index);
+        return;
+      }
+    }
+
     if (invoke) await invoke('toggle_main_window');
     return;
+  }
+
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    const editingItem = document.querySelector('.history-item.editing');
+    if (editingItem) {
+      event.preventDefault();
+      const allItems = document.querySelectorAll('.history-item');
+      const index = Array.from(allItems).indexOf(editingItem);
+      if (index >= 0) {
+        saveHistoryItem(index);
+        return;
+      }
+    }
   }
 
   const dirView = !document.getElementById('view-directories').classList.contains('hidden');
@@ -584,7 +626,6 @@ window.addEventListener('keydown', async (event) => {
       event.preventDefault();
       if (selectedIndex >= 0) {
         const selectedDir = dirs[selectedIndex];
-        // 새 폴더 버튼인 경우 네비게이션 방지
         if (selectedDir.classList.contains('btn-new-folder')) {
           createDirectoryPrompt();
           return;
@@ -592,8 +633,34 @@ window.addEventListener('keydown', async (event) => {
         const dirName = selectedDir.querySelector('.dir-name').textContent;
         await window.showItemView(dirName);
       }
+    } else if ((event.metaKey || event.ctrlKey) && (event.key === 'Backspace' || event.key === 'Delete')) {
+      event.preventDefault();
+      if (selectedIndex >= 0) {
+        const selectedDir = dirs[selectedIndex];
+        if (!selectedDir.classList.contains('btn-new-folder')) {
+          const dirName = selectedDir.querySelector('.dir-name').textContent;
+          window.doDelete(null, dirName);
+        }
+      }
     }
   } else if (itemView) {
+    if (event.key === 'ArrowLeft') {
+      const editingItem = document.querySelector('.history-item.editing');
+      if (!editingItem) {
+        if (currentActionIndex > 0) {
+          event.preventDefault();
+          currentActionIndex--;
+          const selectedItem = document.querySelector('.history-item.selected');
+          updateActionButtonsUI(selectedItem);
+          return;
+        } else {
+          event.preventDefault();
+          window.showDirectoryView();
+          return;
+        }
+      }
+    }
+
     const items = document.querySelectorAll('.history-item');
     if (items.length === 0) return;
 
@@ -605,22 +672,10 @@ window.addEventListener('keydown', async (event) => {
     const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null;
     const isEditing = selectedItem && selectedItem.classList.contains('editing');
 
-    // 편집 모드일 때는 기본 동작 허용
     if (isEditing) {
       if (event.key === 'Escape') {
         event.preventDefault();
         cancelEditByIndex(selectedIndex);
-      }
-      return;
-    }
-
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      if (currentActionIndex > 0) {
-        currentActionIndex--;
-        updateActionButtonsUI(selectedItem);
-      } else {
-        window.showDirectoryView();
       }
       return;
     }
@@ -651,11 +706,18 @@ window.addEventListener('keydown', async (event) => {
           buttons[currentActionIndex].click();
         }
       }
+    } else if ((event.metaKey || event.ctrlKey) && (event.key === 'Backspace' || event.key === 'Delete')) {
+      event.preventDefault();
+      if (selectedItem) {
+        const itemId = selectedItem.dataset.id;
+        if (itemId) {
+          window.deleteHistoryItem(itemId);
+        }
+      }
     }
   }
 });
 
-// 디렉토리 항목 선택 함수
 function selectDirItem(index) {
   const dirs = document.querySelectorAll('.dir-item');
   if (dirs.length === 0) return;

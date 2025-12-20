@@ -13,6 +13,7 @@ pub struct PasteItem {
     pub content: String,
     pub directory: String,
     pub created_at: String,
+    pub memo: Option<String>,
 }
 
 // 모든 디렉토리와 각각의 아이템 개수 조회 (빈 디렉토리 포함)
@@ -69,11 +70,36 @@ pub fn init_db() -> Result<Connection> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             content TEXT NOT NULL,
             directory TEXT NOT NULL,
+            memo TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (directory) REFERENCES directories(name)
         )",
         [],
     )?;
+
+    // 마이그레이션: memo 컬럼이 없는 경우 추가
+    let has_memo = {
+        let mut stmt = conn.prepare("PRAGMA table_info(paste_sheets)")?;
+        let rows = stmt.query_map([], |row| {
+            let name: String = row.get(1)?;
+            Ok(name)
+        })?;
+
+        let mut found = false;
+        for row in rows {
+            if let Ok(name) = row {
+                if name == "memo" {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        found
+    };
+
+    if !has_memo {
+        conn.execute("ALTER TABLE paste_sheets ADD COLUMN memo TEXT", [])?;
+    }
 
     // 마이그레이션: 기존 paste_sheets에 있는 디렉토리들을 directories 테이블로 복사
     conn.execute(
@@ -131,7 +157,7 @@ pub fn post_content(content: &str, directory: &str) -> Result<i64> {
 pub fn get_all_contents() -> Result<Vec<PasteItem>> {
     let conn = Connection::open(get_path())?;
     let mut stmt = conn.prepare(
-        "SELECT id, content, directory, created_at FROM paste_sheets ORDER BY created_at DESC",
+        "SELECT id, content, directory, created_at, memo FROM paste_sheets ORDER BY created_at DESC",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(PasteItem {
@@ -139,6 +165,7 @@ pub fn get_all_contents() -> Result<Vec<PasteItem>> {
             content: row.get(1)?,
             directory: row.get(2)?,
             created_at: row.get(3)?,
+            memo: row.get(4)?,
         })
     })?;
     let mut result = Vec::new();
@@ -148,11 +175,11 @@ pub fn get_all_contents() -> Result<Vec<PasteItem>> {
     Ok(result)
 }
 
-pub fn update_content(id: i64, content: &str, directory: &str) -> Result<i64> {
+pub fn update_content(id: i64, content: &str, directory: &str, memo: Option<&str>) -> Result<i64> {
     let conn = Connection::open(get_path())?;
     conn.execute(
-        "UPDATE paste_sheets SET content = ?1, directory = ?2, created_at = CURRENT_TIMESTAMP WHERE id = ?3",
-        rusqlite::params![content, directory, id],
+        "UPDATE paste_sheets SET content = ?1, directory = ?2, memo = ?3, created_at = CURRENT_TIMESTAMP WHERE id = ?4",
+        rusqlite::params![content, directory, memo, id],
     )?;
     Ok(id)
 }
@@ -160,7 +187,7 @@ pub fn update_content(id: i64, content: &str, directory: &str) -> Result<i64> {
 pub fn find_by_content(content: &str, directory: &str) -> Result<Option<PasteItem>> {
     let conn = Connection::open(get_path())?;
     let mut stmt = conn.prepare(
-        "SELECT id, content, directory, created_at FROM paste_sheets WHERE content = ?1 AND directory = ?2 LIMIT 1",
+        "SELECT id, content, directory, created_at, memo FROM paste_sheets WHERE content = ?1 AND directory = ?2 LIMIT 1",
     )?;
     let result = stmt.query_row([content, directory], |row| {
         Ok(PasteItem {
@@ -168,6 +195,7 @@ pub fn find_by_content(content: &str, directory: &str) -> Result<Option<PasteIte
             content: row.get(1)?,
             directory: row.get(2)?,
             created_at: row.get(3)?,
+            memo: row.get(4)?,
         })
     });
 

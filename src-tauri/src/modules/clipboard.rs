@@ -14,7 +14,7 @@ use std::thread;
 use std::time::Duration;
 
 const CLIPBOARD_DEFAULT_DIRECTORY: &str = "Clipboard";
-const MAX_ITEMS_PER_DIRECTORY: i64 = 10;
+const MAX_ITEMS_PER_DIRECTORY: i64 = 30;
 const POLLING_INTERVAL: u64 = 100;
 
 // 디렉토리별 최대 개수 초과 시 오래된 항목 삭제
@@ -84,6 +84,7 @@ pub fn monitor_clipboard(app_handle: tauri::AppHandle) {
                                 existing_item.id,
                                 &current_text,
                                 CLIPBOARD_DEFAULT_DIRECTORY,
+                                existing_item.memo.as_deref(),
                             ) {
                                 error!("Failed to update content: {:?}", e);
                             } else {

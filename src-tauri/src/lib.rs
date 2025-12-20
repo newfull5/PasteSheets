@@ -43,8 +43,13 @@ fn delete_directory(name: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn update_history_item(id: i64, content: String, directory: String) -> Result<(), String> {
-    db::update_content(id, &content, &directory)
+fn update_history_item(
+    id: i64,
+    content: String,
+    directory: String,
+    memo: Option<String>,
+) -> Result<(), String> {
+    db::update_content(id, &content, &directory, memo.as_deref())
         .map(|_| ())
         .map_err(|e| e.to_string())
 }

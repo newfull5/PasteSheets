@@ -220,11 +220,12 @@ button:hover {
   /* 평상시엔 중앙 정렬 */
   background: transparent;
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  /* 여유 공간 확보 */
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  min-height: 40px;
+  min-height: 44px;
   overflow: hidden;
 }
 
@@ -245,13 +246,12 @@ button:hover {
 }
 
 .history-item.selected {
-  background-color: rgba(220, 220, 87, 0.1);
-  padding: 15px 12px;
+  background-color: rgba(220, 220, 87, 0.08);
+  padding: 20px 16px;
+  /* 선택 시 더 넉넉한 여백 */
   align-items: stretch;
   max-height: 450px;
-  /* 전체 최대 높이 확장 */
   overflow: hidden;
-  /* 아이템 자체 스크롤은 제거 */
 }
 
 /* 왼쪽 네온 바 (Bar) */
@@ -260,9 +260,9 @@ button:hover {
   display: block;
   width: 4px;
   height: 16px;
-  /* 평상시 높이 */
   background-color: var(--accent);
-  margin-right: 12px;
+  margin-right: 16px;
+  /* 글자와의 간격 넓힘 */
   border-radius: 2px;
   opacity: 0.3;
   transition: all 0.2s;
@@ -285,27 +285,43 @@ button:hover {
   box-shadow: 0 0 8px var(--accent);
 }
 
+.item-memo {
+  font-size: 13px;
+  font-weight: 500;
+  /* 너무 두껍지 않게 조절 */
+  color: #E2E2B6;
+  /* 약간 부드러운 노란색(Cream) */
+  letter-spacing: 0.03em;
+  /* 자간 확보 */
+  margin-bottom: 8px;
+  /* 본문과의 간격 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .item-content {
   flex: 1;
   font-size: 14px;
-  color: var(--text-main);
+  color: rgba(255, 255, 255, 0.7);
+  /* 본문 채도를 낮춰 타이틀 강조 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  /* 너비 고정 */
 }
 
 .history-item.selected .item-content {
+  color: var(--text-main);
+  /* 선택 시에는 다시 선명하게 */
   white-space: pre-wrap;
   overflow-y: auto;
-  /* 텍스트 영역 내에서만 스크롤 */
   max-height: 300px;
-  /* 텍스트 최대 높이 제한 */
-  padding-right: 4px;
-  /* 스크롤바 공간 */
-  margin-bottom: 12px;
-  line-height: 1.5;
+  padding-right: 6px;
+  margin-bottom: 16px;
+  /* 하단 요소와의 여백 */
+  line-height: 1.6;
+  /* 행간을 넓혀 답답함 해소 */
 }
 
 /* 텍스트 영역 스크롤바 디자인 */
@@ -319,22 +335,21 @@ button:hover {
 }
 
 .item-meta {
+  display: none;
+  /* 평소에는 숨김 */
   color: var(--text-sub);
   font-size: 11px;
   font-family: monospace;
   opacity: 0.6;
 }
 
-.history-item:not(.selected) .item-meta {
-  margin-left: 10px;
-}
-
 .history-item.selected .item-meta {
+  display: flex;
+  /* 선택 시에만 표시 */
   margin-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 8px;
   width: 100%;
-  display: flex;
   justify-content: space-between;
   align-items: center;
 }
@@ -377,6 +392,26 @@ button:hover {
   background: #ff5555;
   color: white;
   border-color: #ff5555;
+}
+
+/* 편집 모드 메모 입력창 */
+.memo-area {
+  width: 100%;
+  background: rgba(220, 220, 87, 0.05);
+  border: 1px solid rgba(220, 220, 87, 0.3);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.memo-area:focus {
+  background: rgba(220, 220, 87, 0.1);
+  border-color: var(--accent);
 }
 
 /* 편집 모드 텍스트 영역 */
@@ -491,34 +526,43 @@ button:hover {
 #context-menu {
   position: fixed;
   z-index: 1000;
-  background: #1e1e2e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 18, 0.98);
+  /* 모달과 동일한 딥 블랙 */
+  border: 1px solid rgba(220, 220, 87, 0.2);
+  /* 노란색 미세 테두리 */
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  padding: 5px 0;
-  min-width: 120px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  padding: 4px 0;
+  min-width: 110px;
+  /* 크기 축소 */
+  backdrop-filter: blur(10px);
 }
 
 .menu-item {
-  padding: 8px 15px;
-  font-size: 13px;
-  color: var(--text-main);
+  padding: 7px 12px;
+  /* 패딩 축소 */
+  font-size: 12.5px;
+  /* 글자 크기도 미세하게 조절 */
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .menu-item:hover {
   background: var(--accent);
-  color: black;
+  /* 노란색 배경 */
+  color: #000;
+  /* 검은색 글자 */
 }
 
 .menu-item#menu-delete:hover {
-  background: #ff5555;
+  background: #ff4444;
+  /* 삭제는 빨간색 유지 */
   color: white;
 }
 
 /* =========================================================
-   커스텀 모달 스타일
+   커스텀 모달 스타일 (Glassmorphism & Black & Yellow)
    ========================================================= */
 #modal-overlay {
   position: fixed;
@@ -526,7 +570,8 @@ button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -534,53 +579,58 @@ button:hover {
 }
 
 #modal-box {
-  background: #1e1e2e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 18, 0.98);
+  /* 순수 딥 블랙 */
+  border: 1px solid rgba(220, 220, 87, 0.2);
+  /* 엑센트 컬러 미세 테두리 */
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   width: 320px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  animation: modalIn 0.3s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  animation: modalIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes modalIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: scale(0.98) translateY(8px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
   }
 }
 
 #modal-title {
   color: var(--accent);
-  margin-bottom: 10px;
-  font-size: 16px;
+  /* 다시 노란색으로 통일 */
+  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 #modal-body {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 #modal-text {
-  color: var(--text-main);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 10px;
+  line-height: 1.6;
 }
 
 #modal-input {
   width: 100%;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: 6px;
   outline: none;
   font-size: 14px;
+  margin-top: 10px;
 }
 
 #modal-input:focus {
@@ -594,24 +644,43 @@ button:hover {
 }
 
 .modal-buttons button {
-  padding: 8px 16px;
+  padding: 8px 18px;
   font-size: 13px;
+  font-weight: 500;
   border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 #modal-confirm {
   background: var(--accent);
-  color: black;
+  color: #000;
   border: none;
-  font-weight: 500;
 }
 
+#modal-confirm:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+/* 삭제 등 위험 동작 버튼 */
 #modal-confirm.btn-danger {
-  background: #ff5555;
+  background: #ff4444;
   color: white;
 }
 
+#modal-confirm.btn-danger:hover {
+  background: #ff2222;
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+}
+
 #modal-cancel {
-  background: transparent;
-  color: var(--text-sub);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+}
+
+#modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
 }
