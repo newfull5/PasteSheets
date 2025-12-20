@@ -42,6 +42,18 @@ fn delete_directory(name: String) -> Result<(), String> {
     db::delete_directory(&name).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn update_history_item(id: i64, content: String, directory: String) -> Result<(), String> {
+    db::update_content(id, &content, &directory)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_history_item(id: i64) -> Result<(), String> {
+    db::delete_history_item(id).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -84,7 +96,9 @@ pub fn run() {
             rename_directory,
             delete_directory,
             paste_text,
-            toggle_main_window
+            toggle_main_window,
+            update_history_item,
+            delete_history_item
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

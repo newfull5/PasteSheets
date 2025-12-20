@@ -3,6 +3,7 @@ console.log('script.js loading...');
 let invoke = null;
 let currentDirId = null;
 let targetDirName = null; // 컨텍스트 메뉴 대상 폴더명
+let currentActionIndex = 0; // 현재 선택된 액션 버튼 인덱스 (0: Paste, 1: Edit, 2: Delete)
 
 // 글로벌 노출 (스크립트 로드 시 즉시)
 window.showContextMenu = function (e, dirName) {
@@ -22,7 +23,7 @@ window.showContextMenu = function (e, dirName) {
 
   const delBtn = document.getElementById('menu-delete');
   const renameBtn = document.getElementById('menu-rename');
-  if (dirName === 'CLIPBOARD') {
+  if (dirName === 'Clipboard') {
     if (delBtn) delBtn.style.display = 'none';
     if (renameBtn) renameBtn.style.display = 'none';
   } else {
@@ -251,11 +252,20 @@ async function loadDirectories() {
     // DB에서 실제 디렉토리 목록과 개수 로드
     const directories = await invoke('get_directories');
     const allItems = await invoke('get_clipboard_history');
+
+    // "Clipboard" 디렉토리를 가장 상단으로 정렬
+    directories.sort((a, b) => {
+      if (a.name === 'Clipboard') return -1;
+      if (b.name === 'Clipboard') return 1;
+      return a.name.localeCompare(b.name);
+    });
+
     const dirs = [
       { name: 'All Items', count: allItems.length },
       ...directories
     ];
 
+    // 'All Items'는 현재 제외하고 렌더링하도록 유지 (필요 시 수정 가능)
     const filteredDirs = dirs.filter(dir => dir.name !== 'All Items');
     renderDirectories(filteredDirs);
 
@@ -322,9 +332,18 @@ async function loadHistory(dirName) {
 
     // 리스트 렌더링
     listDiv.innerHTML = items.map((item, index) => `
-      <div class="history-item" onclick="selectItem(${index})" data-id="${item.id}">
-        <div class="item-content">${escapeHtml(item.content.substring(0, 100))}</div>
-        <div class="item-meta">#${item.id} · ${new Date(item.created_at).toLocaleDateString()}</div>
+      <div class="history-item" onclick="if(!this.classList.contains('editing')) selectItem(${index})" data-id="${item.id}">
+        <div class="item-body">
+          <div class="item-content">${escapeHtml(item.content)}</div>
+          <div class="item-meta">
+            <span>${new Date(item.created_at).toLocaleDateString()}</span>
+          </div>
+          <div class="item-actions">
+            <button class="btn-mini primary" onclick="pasteItemByIndex(${index}); event.stopPropagation();">Paste</button>
+            <button class="btn-mini" onclick="editHistoryItem(${index}); event.stopPropagation();">Edit</button>
+            <button class="btn-mini danger" onclick="deleteHistoryItem(${item.id}); event.stopPropagation();">Delete</button>
+          </div>
+        </div>
       </div>
     `).join('');
 
@@ -347,13 +366,127 @@ function escapeHtml(text) {
 
 window.selectItem = function (index) {
   const all = document.querySelectorAll('.history-item');
-  all.forEach(el => el.classList.remove('selected'));
-  if (all[index]) all[index].classList.add('selected');
 
-  // 선택한 항목의 내용을 클립보드에 복사하고 싶다면:
-  // const selectedItem = all[index];
-  // const content = selectedItem.querySelector('.item-content').textContent;
-  // invoke('paste_text', { text: content });
+  // 편집 중인 항목이 있으면 취소 (선택 이동 시)
+  const editingItem = document.querySelector('.history-item.editing');
+  if (editingItem) {
+    cancelEdit(editingItem);
+  }
+
+  all.forEach(el => el.classList.remove('selected'));
+  if (all[index]) {
+    all[index].classList.add('selected');
+    all[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // 액션 인덱스 초기화 및 UI 업데이트
+    currentActionIndex = 0;
+    updateActionButtonsUI(all[index]);
+  }
+};
+
+function updateActionButtonsUI(itemEl) {
+  if (!itemEl) return;
+  const buttons = itemEl.querySelectorAll('.item-actions .btn-mini');
+  buttons.forEach((btn, idx) => {
+    if (idx === currentActionIndex) {
+      btn.classList.add('primary');
+    } else {
+      btn.classList.remove('primary');
+    }
+  });
+}
+
+window.pasteItemByIndex = async function (index) {
+  const items = document.querySelectorAll('.history-item');
+  if (items[index]) {
+    const content = items[index].querySelector('.item-content').textContent;
+    if (invoke) {
+      try {
+        await invoke('paste_text', { text: content });
+        await invoke('toggle_main_window');
+      } catch (err) {
+        console.error('Failed to paste:', err);
+      }
+    }
+  }
+};
+
+window.editHistoryItem = function (index) {
+  const items = document.querySelectorAll('.history-item');
+  const item = items[index];
+  if (!item) return;
+
+  item.classList.add('editing');
+  const contentDiv = item.querySelector('.item-content');
+  const currentText = contentDiv.textContent;
+
+  // textarea로 교체
+  contentDiv.style.display = 'none';
+  const textarea = document.createElement('textarea');
+  textarea.className = 'edit-area';
+  textarea.value = currentText;
+  contentDiv.parentNode.insertBefore(textarea, contentDiv);
+  textarea.focus();
+
+  // 액션 버튼 변경
+  const actionDiv = item.querySelector('.item-actions');
+  actionDiv.innerHTML = `
+    <button class="btn-mini primary" onclick="saveHistoryItem(${index}); event.stopPropagation();">Save</button>
+    <button class="btn-mini" onclick="cancelEditByIndex(${index}); event.stopPropagation();">Cancel</button>
+  `;
+};
+
+window.cancelEditByIndex = function (index) {
+  const items = document.querySelectorAll('.history-item');
+  cancelEdit(items[index]);
+  // 버튼 복구 위해 다시 로드 (간단하게)
+  if (currentDirId) loadHistory(currentDirId);
+};
+
+function cancelEdit(itemEl) {
+  if (!itemEl) return;
+  itemEl.classList.remove('editing');
+  const textarea = itemEl.querySelector('.edit-area');
+  if (textarea) textarea.remove();
+  const contentDiv = itemEl.querySelector('.item-content');
+  if (contentDiv) contentDiv.style.display = 'block';
+}
+
+window.saveHistoryItem = async function (index) {
+  const items = document.querySelectorAll('.history-item');
+  const item = items[index];
+  const id = item.dataset.id;
+  const newContent = item.querySelector('.edit-area').value;
+
+  try {
+    await invoke('update_history_item', {
+      id: parseInt(id),
+      content: newContent,
+      directory: currentDirId === 'All Items' ? 'Clipboard' : currentDirId // 간단한 로직
+    });
+    await loadHistory(currentDirId);
+  } catch (err) {
+    console.error('Failed to save:', err);
+    alert('저장 실패: ' + err);
+  }
+};
+
+window.deleteHistoryItem = async function (id) {
+  const result = await showModal({
+    title: 'Item Delete',
+    text: '이 항목을 삭제하시겠습니까?',
+    confirmText: 'Delete',
+    isDanger: true
+  });
+
+  if (result) {
+    try {
+      await invoke('delete_history_item', { id: parseInt(id) });
+      await loadHistory(currentDirId);
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    }
+  }
 };
 
 window.clearAll = function () {
@@ -461,12 +594,6 @@ window.addEventListener('keydown', async (event) => {
       }
     }
   } else if (itemView) {
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      window.showDirectoryView();
-      return;
-    }
-
     const items = document.querySelectorAll('.history-item');
     if (items.length === 0) return;
 
@@ -474,6 +601,39 @@ window.addEventListener('keydown', async (event) => {
     items.forEach((item, index) => {
       if (item.classList.contains('selected')) selectedIndex = index;
     });
+
+    const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : null;
+    const isEditing = selectedItem && selectedItem.classList.contains('editing');
+
+    // 편집 모드일 때는 기본 동작 허용
+    if (isEditing) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelEditByIndex(selectedIndex);
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      if (currentActionIndex > 0) {
+        currentActionIndex--;
+        updateActionButtonsUI(selectedItem);
+      } else {
+        window.showDirectoryView();
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      const buttons = selectedItem.querySelectorAll('.item-actions .btn-mini');
+      if (currentActionIndex < buttons.length - 1) {
+        currentActionIndex++;
+        updateActionButtonsUI(selectedItem);
+      }
+      return;
+    }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -485,17 +645,10 @@ window.addEventListener('keydown', async (event) => {
       window.selectItem(prevIndex);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (selectedIndex >= 0) {
-        const selectedItem = items[selectedIndex];
-        const content = selectedItem.querySelector('.item-content').textContent;
-        if (invoke) {
-          try {
-            await invoke('paste_text', { text: content });
-            // 붙여넣기 후 창 숨기기
-            await invoke('toggle_main_window');
-          } catch (err) {
-            console.error('Failed to paste text:', err);
-          }
+      if (selectedItem) {
+        const buttons = selectedItem.querySelectorAll('.item-actions .btn-mini');
+        if (buttons[currentActionIndex]) {
+          buttons[currentActionIndex].click();
         }
       }
     }

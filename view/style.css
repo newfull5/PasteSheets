@@ -217,13 +217,23 @@ button:hover {
 .history-item {
   display: flex;
   align-items: center;
+  /* 평상시엔 중앙 정렬 */
   background: transparent;
   border-radius: 6px;
   padding: 10px 12px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   min-height: 40px;
+  overflow: hidden;
+}
+
+.item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
 }
 
 .history-item:hover,
@@ -236,7 +246,12 @@ button:hover {
 
 .history-item.selected {
   background-color: rgba(220, 220, 87, 0.1);
-  /* 선택 시 엑센트 컬러 미세하게 배합 */
+  padding: 15px 12px;
+  align-items: stretch;
+  max-height: 450px;
+  /* 전체 최대 높이 확장 */
+  overflow: hidden;
+  /* 아이템 자체 스크롤은 제거 */
 }
 
 /* 왼쪽 네온 바 (Bar) */
@@ -245,15 +260,27 @@ button:hover {
   display: block;
   width: 4px;
   height: 16px;
+  /* 평상시 높이 */
   background-color: var(--accent);
   margin-right: 12px;
   border-radius: 2px;
   opacity: 0.3;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
-.history-item:hover::before,
 .history-item.selected::before {
+  height: auto;
+  /* 고정 높이 해제 */
+  align-self: stretch;
+  /* 부모 높이만큼 늘어남 */
+  opacity: 1;
+  box-shadow: 0 0 8px var(--accent);
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.history-item:hover::before {
   opacity: 1;
   box-shadow: 0 0 8px var(--accent);
 }
@@ -265,14 +292,110 @@ button:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
+  /* 너비 고정 */
+}
+
+.history-item.selected .item-content {
+  white-space: pre-wrap;
+  overflow-y: auto;
+  /* 텍스트 영역 내에서만 스크롤 */
+  max-height: 300px;
+  /* 텍스트 최대 높이 제한 */
+  padding-right: 4px;
+  /* 스크롤바 공간 */
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* 텍스트 영역 스크롤바 디자인 */
+.history-item.selected .item-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.history-item.selected .item-content::-webkit-scrollbar-thumb {
+  background: rgba(220, 220, 87, 0.3);
+  border-radius: 2px;
 }
 
 .item-meta {
-  margin-left: 10px;
   color: var(--text-sub);
   font-size: 11px;
   font-family: monospace;
   opacity: 0.6;
+}
+
+.history-item:not(.selected) .item-meta {
+  margin-left: 10px;
+}
+
+.history-item.selected .item-meta {
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 액션 바 스타일 */
+.item-actions {
+  display: none;
+  gap: 8px;
+  margin-top: 12px;
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.history-item.selected .item-actions {
+  display: flex;
+}
+
+.btn-mini {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-sub);
+}
+
+.btn-mini:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.btn-mini.primary {
+  background: var(--accent);
+  color: black;
+  border: none;
+}
+
+.btn-mini.danger:hover {
+  background: #ff5555;
+  color: white;
+  border-color: #ff5555;
+}
+
+/* 편집 모드 텍스트 영역 */
+.edit-area {
+  width: 100%;
+  min-height: 100px;
+  max-height: 300px;
+  /* 편집 창도 높이 제한 */
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--accent);
+  color: var(--text-main);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 8px;
 }
 
 

@@ -59,7 +59,7 @@ pub fn init_db() -> Result<Connection> {
 
     // 기본 디렉토리 삽입
     conn.execute(
-        "INSERT OR IGNORE INTO directories (name) VALUES ('CLIPBOARD')",
+        "INSERT OR IGNORE INTO directories (name) VALUES ('Clipboard')",
         [],
     )?;
 
@@ -92,7 +92,7 @@ pub fn create_directory(name: &str) -> Result<i64> {
 }
 
 pub fn rename_directory(old_name: &str, new_name: &str) -> Result<()> {
-    if old_name == "CLIPBOARD" {
+    if old_name == "Clipboard" {
         return Err(rusqlite::Error::InvalidQuery);
     }
     let conn = Connection::open(get_path())?;
@@ -108,7 +108,7 @@ pub fn rename_directory(old_name: &str, new_name: &str) -> Result<()> {
 }
 
 pub fn delete_directory(name: &str) -> Result<()> {
-    if name == "CLIPBOARD" {
+    if name == "Clipboard" {
         return Err(rusqlite::Error::InvalidQuery);
     }
     let conn = Connection::open(get_path())?;
@@ -176,4 +176,10 @@ pub fn find_by_content(content: &str, directory: &str) -> Result<Option<PasteIte
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(e),
     }
+}
+
+pub fn delete_history_item(id: i64) -> Result<()> {
+    let conn = Connection::open(get_path())?;
+    conn.execute("DELETE FROM paste_sheets WHERE id = ?1", [id])?;
+    Ok(())
 }

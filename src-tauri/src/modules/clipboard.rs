@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-const CLIPBOARD_DEFAULT_DIRECTORY: &str = "CLIPBOARD";
+const CLIPBOARD_DEFAULT_DIRECTORY: &str = "Clipboard";
 const MAX_ITEMS_PER_DIRECTORY: i64 = 10;
 const POLLING_INTERVAL: u64 = 100;
 
