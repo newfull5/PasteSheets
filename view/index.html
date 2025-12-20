@@ -14,7 +14,11 @@
 
     <div id="view-directories" class="view-page">
       <header class="app-header">
-        <h1>PasteSheet</h1>
+        <div class="header-title-container">
+          <h1 id="main-brand-title">PasteSheet</h1>
+          <input type="text" id="dir-search" class="header-search" placeholder="Search Anything..." spellcheck="false"
+            autocomplete="off">
+        </div>
       </header>
 
       <div id="directory-list" class="content-list">
@@ -25,7 +29,11 @@
       <header class="app-header header-row">
         <div class="header-left">
           <button class="btn-back" onclick="showDirectoryView()">◀</button>
-          <h1 id="current-folder-title" style="margin-left: 5px;">Folder</h1>
+          <div class="header-title-container" style="margin-left: 5px;">
+            <h1 id="current-folder-title" class="view-folder">Folder</h1>
+            <input type="text" id="item-search" class="header-search" placeholder="Search Items..." spellcheck="false"
+              autocomplete="off">
+          </div>
         </div>
       </header>
 

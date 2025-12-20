@@ -5,6 +5,10 @@ let currentDirId = null;
 let targetDirName = null; // 컨텍스트 메뉴 대상 폴더명
 let currentActionIndex = 0; // 현재 선택된 액션 버튼 인덱스 (0: Paste, 1: Edit, 2: Delete)
 
+let allDirectories = []; // 검색을 위한 전체 디렉토리 저장
+let allItemsGlobal = []; // 전체 검색을 위한 모든 아이템 저장
+let currentDirectoryItems = []; // 현재 디렉토리 내 검색을 위한 아이템 저장
+
 // 글로벌 노출 (스크립트 로드 시 즉시)
 window.showContextMenu = function (e, dirName) {
   console.log('showContextMenu called for:', dirName);
@@ -197,6 +201,41 @@ async function startApp() {
         if (currentDirId) await loadHistory(currentDirId);
       });
     }
+
+    // 검색창 이벤트 바인딩
+    const dirSearch = document.getElementById('dir-search');
+    const itemSearch = document.getElementById('item-search');
+    const mainTitle = document.getElementById('main-brand-title');
+    const folderTitle = document.getElementById('current-folder-title');
+
+    const updateSearchUI = (input, title) => {
+      // 값이 있거나 포커스가 되어 있는 경우 타이틀을 완전히 숨겨서
+      // '깨끗한 입력창'이 나타나도록 합니다.
+      if (input.value || document.activeElement === input) {
+        title.style.opacity = '0';
+        input.classList.add('active');
+      } else {
+        title.style.opacity = '1';
+        input.classList.remove('active');
+      }
+    };
+
+    dirSearch.oninput = () => {
+      filterDirectories();
+      updateSearchUI(dirSearch, mainTitle);
+    };
+    dirSearch.onfocus = () => updateSearchUI(dirSearch, mainTitle);
+    dirSearch.onblur = () => updateSearchUI(dirSearch, mainTitle);
+
+    itemSearch.oninput = () => {
+      filterHistoryItems();
+      updateSearchUI(itemSearch, folderTitle);
+    };
+    itemSearch.onfocus = () => updateSearchUI(itemSearch, folderTitle);
+    itemSearch.onblur = () => updateSearchUI(itemSearch, folderTitle);
+
+    // ESC 누르면 검색창 비우기 (글로벌에서 통합 관리하기 위해 제거)
+
   } else {
     console.warn('Tauri not found, rendering empty list');
     renderDirectories([]);
@@ -226,6 +265,15 @@ window.showDirectoryView = function () {
   document.getElementById('view-items').classList.add('hidden');
   document.getElementById('view-directories').classList.remove('hidden');
 
+  // 검색어 초기화
+  const dirSearch = document.getElementById('dir-search');
+  const mainTitle = document.getElementById('main-brand-title');
+  if (dirSearch) {
+    dirSearch.value = '';
+    filterDirectories();
+    if (mainTitle) mainTitle.style.opacity = '1';
+  }
+
   const dirs = document.querySelectorAll('.dir-item');
   const selected = document.querySelector('.dir-item.selected');
   if (dirs.length > 0 && !selected) {
@@ -236,6 +284,14 @@ window.showDirectoryView = function () {
 window.showItemView = async function (dirName) {
   document.getElementById('view-directories').classList.add('hidden');
   document.getElementById('view-items').classList.remove('hidden');
+
+  // 검색어 초기화
+  const itemSearch = document.getElementById('item-search');
+  const folderTitle = document.getElementById('current-folder-title');
+  if (itemSearch) {
+    itemSearch.value = '';
+    if (folderTitle) folderTitle.style.opacity = '1';
+  }
 
   const titleEl = document.getElementById('current-folder-title');
   titleEl.textContent = dirName;
@@ -259,31 +315,48 @@ async function loadDirectories() {
       return a.name.localeCompare(b.name);
     });
 
-    const dirs = [
-      { name: 'All Items', count: allItems.length },
-      ...directories
-    ];
+    allItemsGlobal = allItems;
+    allDirectories = directories.map(dir => ({
+      ...dir,
+      count: allItems.filter(item => item.directory.toLowerCase() === dir.name.toLowerCase()).length
+    }));
 
-    const filteredDirs = dirs.filter(dir => dir.name !== 'All Items');
-    renderDirectories(filteredDirs);
-
-    if (filteredDirs.length > 0) {
-      selectDirItem(0);
-    }
+    filterDirectories();
   } catch (error) {
     console.error('Failed to load directories:', error);
     renderDirectories([]);
   }
 }
 
-function renderDirectories(dirs) {
-  const listDiv = document.getElementById('directory-list');
+function filterDirectories() {
+  const searchTerm = document.getElementById('dir-search').value.toLowerCase();
 
-  let directoryHtml = '';
-  if (dirs.length === 0) {
-    directoryHtml = '<div class="empty-state">디렉토리가 없습니다</div>';
-  } else {
-    directoryHtml = dirs.map(dir => {
+  const filteredDirs = allDirectories.filter(dir =>
+    dir.name.toLowerCase().includes(searchTerm)
+  );
+
+  const filteredItems = searchTerm.trim() !== ''
+    ? allItemsGlobal.filter(item =>
+      (item.content && item.content.toLowerCase().includes(searchTerm)) ||
+      (item.memo && item.memo.toLowerCase().includes(searchTerm))
+    )
+    : [];
+
+  renderDirectories(filteredDirs, filteredItems, searchTerm);
+
+  if (filteredDirs.length > 0 || filteredItems.length > 0) {
+    selectDirItem(0);
+  }
+}
+
+function renderDirectories(dirs, items = [], searchTerm = '') {
+  const listDiv = document.getElementById('directory-list');
+  let html = '';
+
+  // 1. 디렉토리 섹션
+  if (dirs.length > 0) {
+    if (searchTerm) html += '<div class="search-section-title">Folders</div>';
+    html += dirs.map(dir => {
       const safeName = dir.name.replace(/'/g, "\\'");
       return `
         <div class="dir-item"
@@ -297,14 +370,55 @@ function renderDirectories(dirs) {
     }).join('');
   }
 
-  const newFolderHtml = `
-    <div class="dir-item btn-new-folder" onclick="createDirectoryPrompt(); event.stopPropagation();" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub);">
-      <span class="dir-name" style="font-size: 14px;"> New Folder </span>
-    </div>
-  `;
+  // 2. 통합 검색 항목 섹션
+  if (items.length > 0) {
+    html += '<div class="search-section-title" style="margin-top:15px;">Items</div>';
+    html += items.map(item => {
+      const displayContent = item.content.length > 50 ? item.content.substring(0, 50) + '...' : item.content;
+      return `
+        <div class="dir-item search-result-item"
+             onclick="globalPaste('${item.content.replace(/'/g, "\\'").replace(/\n/g, "\\n")}')"
+             tabindex="0">
+          <div style="display:flex; flex-direction:column; width:100%;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="dir-name" style="font-size:12px; color:var(--accent);">${item.memo || 'Item'}</span>
+              <span style="font-size:10px; color:rgba(255,255,255,0.3);">${item.directory}</span>
+            </div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">
+              ${escapeHtml(displayContent)}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
-  listDiv.innerHTML = directoryHtml + newFolderHtml;
+  if (dirs.length === 0 && items.length === 0) {
+    html = '<div class="empty-state">검색 결과가 없습니다</div>';
+  }
+
+  // 3. 'New Folder' 버튼 (검색 중이 아닐 때만 하단에 표시)
+  if (!searchTerm) {
+    html += `
+      <div class="dir-item btn-new-folder" onclick="createDirectoryPrompt(); event.stopPropagation();" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub);">
+        <span class="dir-name" style="font-size: 14px;"> New Folder </span>
+      </div>
+    `;
+  }
+
+  listDiv.innerHTML = html;
 }
+
+window.globalPaste = async function (content) {
+  if (invoke) {
+    try {
+      await invoke('paste_text', { text: content });
+      await invoke('toggle_main_window');
+    } catch (err) {
+      console.error('Global paste failed:', err);
+    }
+  }
+};
 
 async function loadHistory(dirName) {
   const listDiv = document.getElementById('history-list');
@@ -313,13 +427,28 @@ async function loadHistory(dirName) {
   try {
     const allItems = await invoke('get_clipboard_history');
 
-    const items = (dirName === 'All Items' || !dirName)
+    currentDirectoryItems = (dirName === 'All Items' || !dirName)
       ? allItems
       : allItems.filter(item => item.directory.toLowerCase() === dirName.toLowerCase());
 
-    const historyHtml = items.length === 0
-      ? ''
-      : items.map((item, index) => `
+    filterHistoryItems();
+  } catch (error) {
+    console.error('Failed to load history:', error);
+    listDiv.innerHTML = '';
+  }
+}
+
+function filterHistoryItems() {
+  const searchTerm = document.getElementById('item-search').value.toLowerCase();
+  const items = currentDirectoryItems.filter(item =>
+    (item.content && item.content.toLowerCase().includes(searchTerm)) ||
+    (item.memo && item.memo.toLowerCase().includes(searchTerm))
+  );
+
+  const listDiv = document.getElementById('history-list');
+  const historyHtml = items.length === 0
+    ? ''
+    : items.map((item, index) => `
       <div class="history-item" onclick="if(!this.classList.contains('editing')) selectItem(${index})" data-id="${item.id}" data-memo="${escapeHtml(item.memo || '')}">
         <div class="item-body">
           ${item.memo ? `<div class="item-memo">${escapeHtml(item.memo)}</div>` : ''}
@@ -336,7 +465,7 @@ async function loadHistory(dirName) {
       </div>
     `).join('');
 
-    const newItemHtml = `
+  const newItemHtml = `
       <div class="history-item btn-new-folder btn-new-item" onclick="createHistoryItemPrompt(); event.stopPropagation();" tabindex="0" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--text-sub); min-height: 44px;">
         <div class="item-body">
           <div class="item-content" style="font-size: 14px; color: var(--accent); opacity: 0.8;"> New Item </div>
@@ -344,14 +473,10 @@ async function loadHistory(dirName) {
       </div>
     `;
 
-    listDiv.innerHTML = historyHtml + newItemHtml;
+  listDiv.innerHTML = historyHtml + newItemHtml;
 
-    if (items.length > 0) {
-      window.selectItem(0);
-    }
-  } catch (error) {
-    console.error('Failed to load history:', error);
-    listDiv.innerHTML = `< div class="empty-state" > 로드 실패</div > `;
+  if (items.length > 0) {
+    window.selectItem(0);
   }
 }
 
@@ -681,9 +806,36 @@ window.addEventListener('keydown', async (event) => {
     return;
   }
 
+  // 1. 입력창 포커스 중일 때는 글로벌 단축키 대부분을 무시 (ESC/Enter 등 필요한 것 제외)
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    if (event.key === 'Escape') {
+      // 입력창 자체의 onkeydown에서 처리하므로 여기선 통과
+    } else if (event.key === 'Enter') {
+      // 입력창에서 Enter 누르면 첫 결과 선택 등 추가 동작 가능
+    } else {
+      // 백스페이스, 화살표 등 입력창 본연의 동작을 방해하지 않도록 리턴
+      return;
+    }
+  }
+
+  // 2. 자동 검색 포커스: 입력 필드가 아닌 곳에서 문자를 치거나 백스페이스를 누르면 검색창으로 포커스
+  if (event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
+    const isPrintable = event.key.length === 1;
+    const isBackspace = event.key === 'Backspace';
+
+    if ((isPrintable || isBackspace) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const isDirView = !document.getElementById('view-directories').classList.contains('hidden');
+      const searchInput = isDirView ? document.getElementById('dir-search') : document.getElementById('item-search');
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }
+  }
+
   if (event.key === 'Escape') {
     event.preventDefault();
 
+    // 1. 인라인 에디팅 중이면 에디팅 취소
     const editingItem = document.querySelector('.history-item.editing');
     if (editingItem) {
       const allItems = document.querySelectorAll('.history-item');
@@ -694,6 +846,22 @@ window.addEventListener('keydown', async (event) => {
       }
     }
 
+    // 2. 검색 중이면 검색어 초기화 (1단계 ESC)
+    const dirSearch = document.getElementById('dir-search');
+    const itemSearch = document.getElementById('item-search');
+    const isDirView = !document.getElementById('view-directories').classList.contains('hidden');
+    const activeSearch = isDirView ? dirSearch : itemSearch;
+    const title = isDirView ? document.getElementById('main-brand-title') : document.getElementById('current-folder-title');
+
+    if (activeSearch && (activeSearch.value || document.activeElement === activeSearch)) {
+      activeSearch.value = '';
+      if (isDirView) filterDirectories(); else filterHistoryItems();
+      activeSearch.blur();
+      if (title) title.style.opacity = '1';
+      return; // 윈도우는 아직 닫지 않음
+    }
+
+    // 3. 더 이상 할 게 없으면 윈도우 토글 (2단계 ESC)
     if (invoke) await invoke('toggle_main_window');
     return;
   }
@@ -837,6 +1005,9 @@ function selectDirItem(index) {
   dirs.forEach(el => el.classList.remove('selected'));
   if (dirs[index]) {
     dirs[index].classList.add('selected');
-    dirs[index].focus?.()
+    // 검색창 입력 중에는 포커스를 뺏지 않음
+    if (document.activeElement.tagName !== 'INPUT') {
+      dirs[index].focus?.();
+    }
   }
 }

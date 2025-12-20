@@ -103,14 +103,68 @@ body {
    ========================================================= */
 
 .app-header {
+  position: relative;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  min-height: 30px;
+  margin-bottom: 20px;
+  min-height: 40px;
   flex-shrink: 0;
-  /* 헤더가 찌그러지지 않게 */
 }
+
+.header-title-container {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.app-header h1 {
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  margin: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.app-header h1.view-folder {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+.header-search {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.header-search:focus,
+.header-search.active {
+  opacity: 1;
+}
+
+.header-search::placeholder {
+  color: rgba(220, 220, 87, 0.2);
+}
+
+/* 아이템 뷰에서의 검색창 스타일 조절 (약간 작게) */
+#view-items .header-search {
+  font-size: 18px;
+}
+
 
 h1 {
   color: var(--accent);
@@ -133,9 +187,23 @@ h1::after {
   }
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
+.search-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.2);
+  margin: 15px 10px 8px 10px;
+  letter-spacing: 0.5px;
+}
+
+.search-result-item {
+  height: auto !important;
+  padding: 10px 12px !important;
+  cursor: pointer;
+}
+
+.search-result-item:hover {
+  background: rgba(220, 220, 87, 0.08) !important;
 }
 
 /* 버튼 공통 */
