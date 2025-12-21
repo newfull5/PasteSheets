@@ -24,7 +24,7 @@ pub fn get_directories() -> Result<Vec<DirectoryInfo>> {
          FROM directories d
          LEFT JOIN paste_sheets p ON d.name = p.directory
          GROUP BY d.name
-         ORDER BY d.name",
+         ORDER BY CASE WHEN d.name = 'Clipboard' THEN 0 ELSE 1 END, d.name",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(DirectoryInfo {

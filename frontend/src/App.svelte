@@ -136,17 +136,18 @@
       isVisible = event.payload;
       if (isVisible) {
         await loadDirectories();
-        if (currentView === "items") await loadHistory();
+        await loadHistory(); // 모든 히스토리 미리 로드
       }
     });
 
     // 클립보드 갱신 리스너
     await listen("clipboard-updated", async () => {
       await loadDirectories();
-      if (currentView === "items") await loadHistory();
+      await loadHistory(); // 항상 전체 히스토리 갱신
     });
 
     await loadDirectories();
+    await loadHistory(); // 초기 로드 시에도 전체 히스토리 로드
   });
 
   async function loadDirectories() {
@@ -348,8 +349,9 @@
         // We'll let Modal.svelte handle it, but we MUST prevent other global actions.
         return;
       }
-      // 블락: 모달이 떠있을 때는 아래의 전역 단축키나 검색어 입력 등이 동작하지 않아야 함
-      if (event.key !== "Tab") return;
+      // 블락: 모달이 떠있을 때는 모든 키 입력을 차단 (Tab, 방향키 포함)
+      event.preventDefault();
+      return;
     }
 
     // 3. 디테일 뷰가 열려있을 때 방향키/엔터 등 차단
@@ -398,6 +400,7 @@
         return;
       } else if (
         searchQuery &&
+        !isSearchInput && // 검색창에 포커스가 없을 때만 버튼 네비게이션
         (event.key === "ArrowRight" || event.key === "ArrowLeft")
       ) {
         event.preventDefault();

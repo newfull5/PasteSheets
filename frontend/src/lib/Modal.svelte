@@ -82,16 +82,16 @@
 
       <div class="flex justify-end gap-3">
         <button
-          class="px-4 py-2 rounded-lg bg-white/5 text-text-main text-sm font-medium hover:bg-white/10 transition-all"
+          class="px-4 py-2 rounded-lg bg-white/5 text-text-main text-sm font-medium hover:bg-white/10 transition-all outline-none focus:ring-2 focus:ring-white/30"
           on:click={handleCancel}
         >
           {cancelText}
         </button>
         <button
           bind:this={confirmBtn}
-          class="px-4 py-2 rounded-lg text-sm font-bold transition-all {isDanger
-            ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_4px_12px_rgba(239,68,68,0.3)]'
-            : 'bg-accent text-bg-app hover:brightness-110 shadow-[0_4px_12px_rgba(220,220,87,0.3)]'}"
+          class="px-4 py-2 rounded-lg text-sm font-bold transition-all outline-none {isDanger
+            ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_4px_12px_rgba(239,68,68,0.3)] focus:ring-[3px] focus:ring-red-300/60'
+            : 'bg-accent text-bg-app hover:brightness-110 shadow-[0_4px_12px_rgba(220,220,87,0.3)] focus:ring-[3px] focus:ring-accent/60'}"
           on:click={handleConfirm}
         >
           {confirmText}

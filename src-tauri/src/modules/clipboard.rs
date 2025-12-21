@@ -1,7 +1,6 @@
 use crate::modules::db;
 use crate::modules::db::{find_by_content, update_content};
 use crate::modules::hotkey::restore_prev_app_native;
-use crate::modules::hotkey::toggle_main_window;
 use arboard::Clipboard;
 use enigo::{
     Direction::{Click, Press, Release},
@@ -49,13 +48,13 @@ pub fn get_clipboard_text() -> Option<String> {
     match Clipboard::new() {
         Ok(mut clipboard) => match clipboard.get_text() {
             Ok(text) => Some(text),
-            Err(e) => {
-                debug!("Faield to get clipbaord text: {:?}", e);
+            Err(_) => {
+                // ContentNotAvailable는 정상적인 상황 (클립보드가 비어있음)
                 None
             }
         },
         Err(e) => {
-            error!("Faield to get clipbaord text: {:?}", e);
+            error!("Failed to create clipboard: {:?}", e);
             None
         }
     }
