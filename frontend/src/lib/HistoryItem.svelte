@@ -322,6 +322,7 @@
     color: var(--color-text-sub);
     cursor: pointer;
     transition: all 0.2s;
+    outline: none; /* 브라우저 기본 파란색 테두리 제거 */
   }
 
   .btn-mini:hover {
@@ -329,10 +330,14 @@
     color: var(--color-text-main);
   }
 
+  .btn-mini:focus {
+    outline: none; /* focus 시에도 브라우저 기본 outline 제거 */
+  }
+
   .btn-mini.primary {
     background: var(--color-accent);
     color: black;
-    border: none;
+    border: 1px solid transparent; /* border 크기 유지 */
   }
 
   .btn-mini.danger:hover,
