@@ -1,7 +1,14 @@
 <script>
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { fly } from "svelte/transition";
+  import DirectoryView from "./lib/DirectoryView.svelte";
+  import ItemView from "./lib/ItemView.svelte";
+  import SearchView from "./lib/SearchView.svelte";
+  import Header from "./lib/Header.svelte";
+  import Modal from "./lib/Modal.svelte";
+  import DetailModal from "./lib/DetailModal.svelte";
 
   // --- 상태 관리 ---
   let isVisible = false;
@@ -17,12 +24,75 @@
   let editContent = "";
   let editMemo = "";
 
-  // --- 반응형 필터링 ---
+  // 모달 상태
+  let modalConfig = {
+    show: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    isDanger: false,
+    showInput: false,
+    inputValue: "",
+    onConfirm: (val) => {},
+  };
+
+  function openModal(config) {
+    modalConfig = {
+      show: true,
+      title: "Confirm",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      isDanger: false,
+      showInput: false,
+      inputValue: "",
+      onConfirm: (val) => {},
+      ...config,
+    };
+  }
+
+  function closeModal() {
+    modalConfig.show = false;
+  }
+
+  function handleModalConfirm(event) {
+    if (modalConfig.onConfirm) {
+      modalConfig.onConfirm(event.detail);
+    }
+    closeModal();
+  }
+
+  // 상세 보기 상태
+  let detailItem = null;
+
+  function handleView(item) {
+    if (item) {
+      detailItem = item;
+    }
+  }
+
+  function closeDetail() {
+    detailItem = null;
+  }
+
+  let isLoading = false;
+
+  // 필터링된 리스트 (반응형)
   $: filteredDirectories = directories.filter((d) =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   $: filteredItems = historyItems.filter(
+    (item) =>
+      item.directory === currentDirId &&
+      ((item.content &&
+        item.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.memo &&
+          item.memo.toLowerCase().includes(searchQuery.toLowerCase()))),
+  );
+
+  $: globalFilteredItems = historyItems.filter(
     (item) =>
       (item.content &&
         item.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -30,34 +100,63 @@
         item.memo.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
-  $: if (searchQuery !== undefined) {
-    selectedIndex = 0;
+  // Clamping selectedIndex
+  $: {
+    let listCount = 0;
+    if (searchQuery) {
+      listCount = filteredDirectories.length + globalFilteredItems.length;
+    } else if (currentView === "directories") {
+      listCount = filteredDirectories.length + 1; // +1 for New Folder
+    } else {
+      listCount = filteredItems.length + 1; // +1 for New Item
+    }
+
+    if (selectedIndex >= listCount && listCount > 0) {
+      selectedIndex = listCount - 1;
+    } else if (listCount === 0) {
+      selectedIndex = 0;
+    }
+  }
+
+  // Focus action buttons when selectedIndex changes in items view
+  $: if (
+    currentView === "items" &&
+    itemView &&
+    !searchQuery &&
+    selectedIndex !== undefined
+  ) {
+    // We can't directly call it here because itemView might not have rendered the new history items yet
+    // but the binding will handle the visual primary state.
+    // We just need to make sure itemView knows focus should be on index 0
   }
 
   // --- 초기화 ---
   onMount(async () => {
-    await listen("window-visible", (event) => {
+    await listen("window-visible", async (event) => {
       isVisible = event.payload;
       if (isVisible) {
-        loadDirectories();
-        if (currentView === "items") loadHistory();
+        await loadDirectories();
+        if (currentView === "items") await loadHistory();
       }
     });
 
     // 클립보드 갱신 리스너
-    await listen("clipboard-updated", () => {
-      loadDirectories();
-      if (currentView === "items") loadHistory();
+    await listen("clipboard-updated", async () => {
+      await loadDirectories();
+      if (currentView === "items") await loadHistory();
     });
 
-    loadDirectories();
+    await loadDirectories();
   });
 
   async function loadDirectories() {
+    isLoading = true;
     try {
       directories = await invoke("get_directories");
     } catch (err) {
       console.error("Failed to load directories:", err);
+    } finally {
+      isLoading = false;
     }
   }
 
@@ -70,10 +169,13 @@
   }
 
   async function loadHistory() {
+    isLoading = true;
     try {
       historyItems = await invoke("get_clipboard_history");
     } catch (err) {
       console.error("Failed to load history:", err);
+    } finally {
+      isLoading = false;
     }
   }
 
@@ -86,6 +188,7 @@
 
   // --- 액션 핸들러 ---
   async function useItem(item) {
+    if (!item) return;
     try {
       await invoke("toggle_main_window");
       setTimeout(async () => {
@@ -96,248 +199,349 @@
     }
   }
 
-  async function createFolder() {
-    const name = prompt("New folder name:");
+  async function createFolder(event) {
+    const name = event.detail;
     if (!name) return;
     try {
       await invoke("create_directory", { name });
       await loadDirectories();
     } catch (err) {
-      alert("Failed to create folder: " + err);
+      console.error("Failed to create folder:", err);
     }
   }
 
-  async function deleteDirectory(name) {
-    if (!confirm(`Delete folder "${name}"? All items inside will be lost.`))
-      return;
-    try {
-      await invoke("delete_directory", { name });
-      await loadDirectories();
-    } catch (err) {
-      alert("Failed to delete folder: " + err);
-    }
+  function deleteDirectory(name) {
+    openModal({
+      title: "Delete Folder",
+      message: `Are you sure you want to delete folder "${name}"? All items inside will be lost.`,
+      isDanger: true,
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          await invoke("delete_directory", { name });
+          await loadDirectories();
+        } catch (err) {
+          console.error("Failed to delete folder:", err);
+        }
+      },
+    });
   }
 
-  async function renameDirectory(oldName) {
-    const newName = prompt("Enter new folder name:", oldName);
-    if (!newName || newName === oldName) return;
-    try {
-      await invoke("rename_directory", { oldName, newName });
-      await loadDirectories();
-    } catch (err) {
-      alert("Failed to rename folder: " + err);
-    }
+  function renameDirectory(oldName) {
+    openModal({
+      title: "Rename Folder",
+      message: "Enter new name for the folder:",
+      showInput: true,
+      inputValue: oldName,
+      confirmText: "Rename",
+      onConfirm: async (newName) => {
+        if (!newName || newName === oldName) return;
+        try {
+          await invoke("rename_directory", { oldName, newName });
+          await loadDirectories();
+        } catch (err) {
+          console.error("Failed to rename folder:", err);
+        }
+      },
+    });
   }
 
   function startEdit(item) {
+    if (!item) return;
     editingId = item.id;
     editContent = item.content;
     editMemo = item.memo || "";
   }
 
-  async function saveEdit(item) {
+  async function saveEdit() {
     try {
       await invoke("update_history_item", {
-        id: item.id,
+        id: editingId,
         content: editContent,
         directory: currentDirId,
         memo: editMemo || null,
       });
       editingId = null;
       await loadHistory();
+      await loadDirectories();
     } catch (err) {
       console.error("Failed to update item:", err);
     }
   }
 
-  async function deleteItem(id) {
-    if (!confirm("Are you sure you want to delete this item?")) return;
+  async function createItem(event) {
+    const { content, memo } = event.detail;
+    if (!content) return;
     try {
-      await invoke("delete_history_item", { id });
+      await invoke("create_history_item", {
+        content,
+        directory: currentDirId,
+        memo,
+      });
       await loadHistory();
+      await loadDirectories();
     } catch (err) {
-      console.error("Failed to delete item:", err);
+      console.error("Failed to create item:", err);
     }
   }
 
+  function deleteItem(id) {
+    openModal({
+      title: "Delete Item",
+      message: "Are you sure you want to delete this item?",
+      isDanger: true,
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          await invoke("delete_history_item", { id });
+          await loadHistory();
+          await loadDirectories();
+        } catch (err) {
+          console.error("Failed to delete item:", err);
+        }
+      },
+    });
+  }
+
+  let directoryView;
+  let itemView;
+  let searchView;
+  let header;
+
   // --- 키보드 핸들링 ---
   function handleKeyDown(event) {
-    if (editingId !== null) return; // 편집 중일 때는 글로벌 키 바인딩 무시
+    const isInput =
+      event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA";
+    const isSearchInput = event.target.classList.contains("header-search");
 
-    const listCount =
-      currentView === "directories"
-        ? filteredDirectories.length
-        : filteredItems.length;
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      selectedIndex = (selectedIndex + 1) % listCount;
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      selectedIndex = (selectedIndex - 1 + listCount) % listCount;
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-      if (currentView === "directories" && filteredDirectories[selectedIndex]) {
-        showItemView(filteredDirectories[selectedIndex].name);
-      } else if (currentView === "items" && filteredItems[selectedIndex]) {
-        useItem(filteredItems[selectedIndex]);
+    // 1. 글로벌 Escape 핸들링
+    if (event.key === "Escape") {
+      if (modalConfig.show) {
+        closeModal();
+        return;
       }
-    } else if (event.key === "Escape") {
+      if (detailItem !== null) {
+        detailItem = null;
+        return;
+      }
+      if (editingId !== null) {
+        editingId = null;
+        return;
+      }
       if (searchQuery) {
         searchQuery = "";
-      } else if (currentView === "items") {
-        showDirectoryView();
-      } else {
-        invoke("toggle_main_window");
+        if (isInput) event.target.blur();
+        return;
       }
-    } else if (event.key === "ArrowLeft" && currentView === "items") {
-      showDirectoryView();
-    } else if (event.key === "ArrowRight" && currentView === "directories") {
-      if (filteredDirectories[selectedIndex]) {
-        showItemView(filteredDirectories[selectedIndex].name);
+      invoke("toggle_main_window");
+      return;
+    }
+
+    // 2. 모달이 열려있을 때 Enter 처리
+    if (modalConfig.show) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        // Modal component already listens for Enter and dispatches 'confirm'
+        // But App.svelte's global listener might run first or interfere.
+        // We'll let Modal.svelte handle it, but we MUST prevent other global actions.
+        return;
       }
+      // 블락: 모달이 떠있을 때는 아래의 전역 단축키나 검색어 입력 등이 동작하지 않아야 함
+      if (event.key !== "Tab") return;
+    }
+
+    // 3. 디테일 뷰가 열려있을 때 방향키/엔터 등 차단
+    if (detailItem !== null && event.key !== "Escape") {
+      return;
+    }
+
+    // 2. 인라인 편집 중 특수 키 (Cmd+Enter 저장 등)
+    if (editingId !== null && isInput) {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        saveEdit();
+        return;
+      }
+    }
+
+    // 3. 입력창 포커스가 아닐 때 검색창 자동 포커스
+    if (!isInput && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key.length === 1 || event.key === "Backspace") {
+        if (header) header.focusSearch();
+      }
+    }
+
+    // 4. 리스트 네비게이션 (검색창에서도 위/아래는 작동)
+    let listCount = 0;
+    if (searchQuery) {
+      listCount = filteredDirectories.length + globalFilteredItems.length;
+    } else if (currentView === "directories") {
+      listCount = filteredDirectories.length + 1;
+    } else {
+      listCount = filteredItems.length + 1;
+    }
+    const isSpecialKey = event.metaKey || event.ctrlKey;
+
+    if (!isInput || isSearchInput) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (listCount > 0) {
+          selectedIndex = (selectedIndex + 1) % listCount;
+        }
+        return;
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (listCount > 0) {
+          selectedIndex = (selectedIndex - 1 + listCount) % listCount;
+        }
+        return;
+      } else if (
+        searchQuery &&
+        (event.key === "ArrowRight" || event.key === "ArrowLeft")
+      ) {
+        event.preventDefault();
+        if (searchView) searchView.handleArrowKey(event.key);
+        return;
+      }
+    }
+
+    // 5. 검색창에서 Enter 누르면 선택된 아이템 실행
+    if (isSearchInput && event.key === "Enter") {
+      event.preventDefault();
+      if (searchQuery) {
+        if (searchView) searchView.executeSelectedAction();
+      } else if (currentView === "directories") {
+        const filtered = filteredDirectories;
+        if (selectedIndex < filtered.length) {
+          showItemView(filtered[selectedIndex].name);
+        }
+      } else if (currentView === "items" && itemView) {
+        itemView.executeSelectedAction();
+      }
+      return;
+    }
+
+    if (isInput) return;
+
+    // 6. 액션 (Non-Input 상태)
+    const activeFiltered = searchQuery
+      ? [...filteredDirectories, ...globalFilteredItems]
+      : currentView === "directories"
+        ? filteredDirectories
+        : filteredItems;
+
+    if (event.key === "Backspace" && isSpecialKey) {
+      event.preventDefault();
+      // 삭제 (Cmd+Backspace)
+      if (activeFiltered[selectedIndex]) {
+        if (searchQuery) {
+          if (selectedIndex < filteredDirectories.length) {
+            deleteDirectory(activeFiltered[selectedIndex].name);
+          } else {
+            deleteItem(activeFiltered[selectedIndex].id);
+          }
+        } else if (currentView === "directories") {
+          deleteDirectory(activeFiltered[selectedIndex].name);
+        } else {
+          deleteItem(activeFiltered[selectedIndex].id);
+        }
+      }
+    } else if (event.key === " " && currentView === "items" && !searchQuery) {
+      event.preventDefault();
+      if (activeFiltered[selectedIndex])
+        handleView(activeFiltered[selectedIndex]);
     }
   }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
 
-<div class="container" class:visible={isVisible}>
-  {#if currentView === "directories"}
-    <div id="view-directories" class="view-page">
-      <header class="app-header">
-        <div class="header-title-container">
-          <h1 style="opacity: {searchQuery ? 0 : 1}">PasteSheet</h1>
-          <input
-            type="text"
-            class="header-search"
-            class:active={searchQuery}
-            placeholder="Search Anything..."
-            bind:value={searchQuery}
-            spellcheck="false"
+<div
+  class="w-full h-full max-h-screen bg-bg-container rounded-l-[16px] border-l border-t border-b border-white/10 flex flex-col overflow-hidden relative shadow-[-4px_0_15px_rgba(0,0,0,0.5)] transition-[var(--transition-app-container)] {isVisible
+    ? 'opacity-100 translate-x-0 pointer-events-auto'
+    : 'opacity-0 translate-x-[60px] pointer-events-none'}"
+>
+  <div class="p-4 flex flex-col h-full">
+    <Header
+      bind:this={header}
+      title={searchQuery
+        ? "Search results"
+        : currentView === "directories"
+          ? "PasteSheet"
+          : currentDirId}
+      showBack={currentView === "items" && !searchQuery}
+      bind:searchQuery
+      on:back={showDirectoryView}
+    />
+
+    <div class="flex-1 overflow-hidden relative">
+      {#if searchQuery}
+        <div class="absolute inset-0" transition:fly={{ y: 10, duration: 150 }}>
+          <SearchView
+            bind:this={searchView}
+            {filteredDirectories}
+            filteredItems={globalFilteredItems}
+            bind:selectedIndex
+            on:openFolder={(e) => showItemView(e.detail)}
+            on:paste={(e) => useItem(e.detail)}
+            on:edit={(e) => startEdit(e.detail)}
+            on:delete={(e) => deleteItem(e.detail)}
+            on:view={(e) => handleView(e.detail)}
           />
         </div>
-      </header>
-
-      <div class="content-list">
-        {#each filteredDirectories as dir, i}
-          <div
-            class="dir-item"
-            class:selected={selectedIndex === i}
-            on:click={() => (selectedIndex = i)}
-            on:dblclick={() => showItemView(dir.name)}
-          >
-            <div class="item-body">
-              <div
-                style="display: flex; justify-content: space-between; align-items: center; width: 100%;"
-              >
-                <span class="dir-name">{dir.name}</span>
-                <span class="dir-count">{dir.count}</span>
-              </div>
-
-              {#if selectedIndex === i}
-                <div class="item-actions">
-                  <button
-                    class="btn-mini primary"
-                    on:click={() => showItemView(dir.name)}>Open</button
-                  >
-                  <button
-                    class="btn-mini"
-                    on:click={() => renameDirectory(dir.name)}>Rename</button
-                  >
-                  <button
-                    class="btn-mini danger"
-                    on:click={() => deleteDirectory(dir.name)}>Delete</button
-                  >
-                </div>
-              {/if}
-            </div>
-          </div>
-        {/each}
-
-        <div class="dir-item btn-new-folder" on:click={createFolder}>
-          <span class="dir-name">Create New Folder</span>
+      {:else if currentView === "directories"}
+        <div
+          class="absolute inset-0"
+          transition:fly={{ x: -10, duration: 150 }}
+        >
+          <DirectoryView
+            bind:this={directoryView}
+            directories={filteredDirectories}
+            bind:selectedIndex
+            on:open={(e) => showItemView(e.detail)}
+            on:rename={(e) => renameDirectory(e.detail)}
+            on:delete={(e) => deleteDirectory(e.detail)}
+            on:create={createFolder}
+          />
         </div>
-
-        {#if filteredDirectories.length === 0 && searchQuery}
-          <div class="empty-state">No matching folders found</div>
-        {/if}
-      </div>
-    </div>
-  {:else}
-    <div id="view-items" class="view-page">
-      <header class="app-header header-row">
-        <div class="header-left">
-          <button class="btn-back" on:click={showDirectoryView}>◀</button>
-          <div class="header-title-container" style="margin-left: 5px;">
-            <h1 class="view-folder" style="opacity: {searchQuery ? 0 : 1}">
-              {currentDirId}
-            </h1>
-            <input
-              type="text"
-              class="header-search"
-              class:active={searchQuery}
-              placeholder="Search Items..."
-              bind:value={searchQuery}
-              spellcheck="false"
-            />
-          </div>
+      {:else}
+        <div class="absolute inset-0" transition:fly={{ x: 10, duration: 150 }}>
+          <ItemView
+            bind:this={itemView}
+            historyItems={filteredItems}
+            bind:selectedIndex
+            bind:editingId
+            bind:editContent
+            bind:editMemo
+            on:back={showDirectoryView}
+            on:paste={(e) => useItem(e.detail)}
+            on:edit={(e) => startEdit(e.detail)}
+            on:delete={(e) => deleteItem(e.detail)}
+            on:save={saveEdit}
+            on:cancel={() => (editingId = null)}
+            on:create={createItem}
+            on:view={(e) => handleView(e.detail)}
+          />
         </div>
-      </header>
-
-      <div class="content-list">
-        {#each filteredItems as item, i}
-          <div
-            class="history-item"
-            class:selected={selectedIndex === i}
-            class:editing={editingId === item.id}
-          >
-            <div class="item-body" on:click={() => (selectedIndex = i)}>
-              {#if editingId === item.id}
-                <input
-                  class="memo-area"
-                  bind:value={editMemo}
-                  placeholder="Memo (Optional)"
-                />
-                <textarea class="edit-area" bind:value={editContent}></textarea>
-                <div class="item-actions">
-                  <button
-                    class="btn-mini primary"
-                    on:click={() => saveEdit(item)}>Save</button
-                  >
-                  <button class="btn-mini" on:click={() => (editingId = null)}
-                    >Cancel</button
-                  >
-                </div>
-              {:else}
-                {#if item.memo}
-                  <div class="item-memo">{item.memo}</div>
-                {/if}
-                <div class="item-content">{item.content}</div>
-
-                {#if selectedIndex === i}
-                  <div class="item-actions">
-                    <button
-                      class="btn-mini primary"
-                      on:click={() => useItem(item)}>Paste</button
-                    >
-                    <button class="btn-mini" on:click={() => startEdit(item)}
-                      >Edit</button
-                    >
-                    <button
-                      class="btn-mini danger"
-                      on:click={() => deleteItem(item.id)}>Delete</button
-                    >
-                  </div>
-                {/if}
-              {/if}
-            </div>
-          </div>
-        {/each}
-        {#if filteredItems.length === 0}
-          <div class="empty-state">No items found in this folder</div>
-        {/if}
-      </div>
+      {/if}
     </div>
-  {/if}
+  </div>
 </div>
+
+<Modal
+  show={modalConfig.show}
+  title={modalConfig.title}
+  message={modalConfig.message}
+  confirmText={modalConfig.confirmText}
+  cancelText={modalConfig.cancelText}
+  isDanger={modalConfig.isDanger}
+  showInput={modalConfig.showInput}
+  bind:inputValue={modalConfig.inputValue}
+  on:confirm={handleModalConfirm}
+  on:cancel={closeModal}
+/>
+
+<DetailModal
+  show={detailItem !== null}
+  content={detailItem ? detailItem.content : ""}
+  on:close={closeDetail}
+/>

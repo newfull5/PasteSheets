@@ -1,833 +1,187 @@
-:root {
-  /* [핵심] 색상 팔레트 정의 */
-  --bg-app: #0e1525;
-  --accent: rgb(220, 220, 87);
-  /* 형광 연두색 포인트 */
-  --text-main: #ffffff;
-  /* 흰색 텍스트 */
-  --text-sub: #68748d;
-  /* 회색 서브 텍스트 */
-  --item-hover: rgba(255, 255, 255, 0.08);
+@import "tailwindcss";
+
+@layer base {
+
+  html,
+  body {
+    @apply w-full h-full m-0 p-0 overflow-hidden bg-transparent font-sans;
+  }
+
+  #app {
+    @apply w-full h-full;
+  }
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@theme {
+  --color-accent: rgb(220, 220, 87);
+  --color-bg-app: #0e1525;
+  --color-bg-modal: rgba(18, 18, 18, 0.98);
+  --color-accent-danger: #ff4444;
+  --color-bg-container: rgba(18, 18, 18, 0.98);
+  --color-bg-item: rgba(255, 255, 255, 0.05);
+  --color-text-main: #ffffff;
+  --color-text-sub: #68748d;
+  --color-danger: #ff4444;
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  /* 창 자체는 투명하게 둬서 둥근 모서리가 잘리게 함 */
-  background: transparent;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow: hidden;
-  /* 스크롤바 중복 방지 */
-}
+  /* 커스텀 애니메이션 등록 */
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
 
-body {
-  padding: 0;
-  /* 화면 끝에 완전히 붙도록 패딩 제거 */
-}
+  --animation-blink: blink 1s step-end infinite;
 
-/* [중요] 메인 컨테이너 - 여기가 실제 앱의 배경색입니다 */
-.container {
-  width: 100%;
-  height: 100%;
-  max-height: 100vh;
-  background-color: rgba(18, 18, 18, 0.98);
-  /* 좀 더 진하게 */
-  border-radius: 16px 0 0 16px;
-  /* 왼쪽만 둥글게 해서 사이드바 느낌 강조 */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: none;
-  /* 오른쪽 경계선 제거 */
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(5px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  --animation-slide-in: slideIn 0.2s ease-out;
+
+  /* 보너스: 그림자 및 블러 */
+  --shadow-glow: 0 0 8px var(--color-accent);
+  --shadow-danger-glow: 0 4px 12px rgba(255, 68, 68, 0.3);
 
   /* [수정] 이동 거리를 줄이고 opacity를 추가하여 '빨려들어가는' 느낌 방지 */
-  opacity: 0;
-  transform: translateX(60px);
-  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
-    opacity 0.3s ease-out;
-  pointer-events: none;
-  /* 숨겨져 있을 때 클릭 방지 */
+  --transition-app-container: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+  opacity 0.3s ease-out;
 }
 
-/* [추가] 활성화 시 */
-.container.visible {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
-
-/* =========================================================
-   화면 전환 및 레이아웃
-   ========================================================= */
-
-/* 뷰 페이지 공통 */
-.view-page {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  /* 부드러운 전환 애니메이션 */
-  animation: slideIn 0.2s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(5px);
+/* 유틸리티 레이어 (필요시) */
+@layer utilities {
+  .glass-panel {
+    @apply bg-bg-container backdrop-blur-md border-white/10;
   }
 
-  to {
+  .neon-border {
+    @apply border-accent shadow-glow;
+  }
+
+  /* Shared New Item/Folder Button Styles */
+  .btn-new {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 12px;
+    opacity: 0.8;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--color-text-sub);
+    /* 기본값은 회색 */
+    font-size: 14px;
+    min-height: 44px;
+    background: transparent;
+    border-radius: 6px;
+  }
+
+  .btn-new.accent-text {
+    color: var(--color-accent);
+    /* New Item 전용 형광색 */
+    opacity: 0.8;
+  }
+
+  .btn-new:hover,
+  .btn-new.selected {
     opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* 화면 숨김 유틸리티 */
-.hidden {
-  display: none !important;
-}
-
-/* =========================================================
-   헤더 및 버튼 스타일
-   ========================================================= */
-
-.app-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  min-height: 40px;
-  flex-shrink: 0;
-}
-
-.header-row {
-  width: 100%;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  overflow: hidden;
-}
-
-.header-title-container {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.app-header h1 {
-  color: var(--accent);
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  margin: 0;
-  padding-left: 8px;
-  /* 통일된 여백 */
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-header h1.view-folder {
-  font-size: 18px;
-  opacity: 0.9;
-}
-
-.header-search {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--accent);
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  outline: none;
-  padding: 0 0 0 8px;
-  /* 타이틀 여백과 일치 */
-  margin: 0;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.header-search:focus,
-.header-search.active {
-  opacity: 1;
-}
-
-.header-search::placeholder {
-  color: rgba(220, 220, 87, 0.2);
-}
-
-/* 아이템 뷰에서의 검색창 스타일 조절 (약간 작게) */
-#view-items .header-search {
-  font-size: 18px;
-}
-
-/* 타이틀 옆 깜빡이는 커서 효과 */
-h1::after {
-  content: '|';
-  color: var(--accent);
-  animation: blink 1s step-end infinite;
-  margin-left: 2px;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-.search-section-title {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.2);
-  margin: 15px 10px 8px 10px;
-  letter-spacing: 0.5px;
-}
-
-.search-result-item {
-  height: auto !important;
-  padding: 10px 12px !important;
-  cursor: pointer;
-}
-
-.search-result-item:hover {
-  background: rgba(220, 220, 87, 0.08) !important;
-}
-
-/* 버튼 공통 */
-button {
-  background: transparent;
-  color: var(--text-sub);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-button:hover {
-  color: var(--text-main);
-  border-color: var(--text-sub);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.controls {
-  display: flex;
-  gap: 6px;
-}
-
-/* 뒤로가기 버튼 */
-.btn-back {
-  border: none;
-  font-size: 16px;
-  color: var(--accent);
-  padding: 4px 8px;
-  margin-right: 4px;
-}
-
-.btn-back:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-}
-
-/* =========================================================
-   리스트 영역 (폴더 & 히스토리 공통)
-   ========================================================= */
-
-.content-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
-  padding-right: 2px;
-  flex: 1;
-  /* 남은 공간 꽉 채우기 */
-}
-
-/* 스크롤바 디자인 */
-.content-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content-list::-webkit-scrollbar-thumb {
-  background: rgba(220, 220, 87, 0.2);
-  /* 흰색 대신 테마색(노란색) 투명하게 변경 */
-  border-radius: 10px;
-}
-
-.content-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(220, 220, 87, 0.4);
-}
-
-.empty-state {
-  color: var(--text-sub);
-  text-align: center;
-  padding: 40px 0;
-  font-size: 14px;
-}
-
-/* =========================================================
-   아이템 디자인 (폴더 & 히스토리 공통 스타일)
-   ========================================================= */
-
-/* 1. 히스토리 아이템 */
-.history-item {
-  display: flex;
-  align-items: center;
-  /* 평상시엔 중앙 정렬 */
-  background: transparent;
-  border-radius: 6px;
-  padding: 12px 14px;
-  /* 여유 공간 확보 */
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  min-height: 44px;
-  overflow: hidden;
-}
-
-.item-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* 수직 중앙 정렬 추가 */
-  overflow: hidden;
-  width: 100%;
-}
-
-.history-item:hover,
-.history-item.selected {
-  background-color: rgba(255, 255, 255, 0.05);
-  /* 더 은은한 배경 */
-  outline: none;
-  /* 파란색 테두리 제거 */
-}
-
-.history-item.selected {
-  background-color: rgba(220, 220, 87, 0.08);
-  align-items: stretch;
-  max-height: 800px;
-  min-height: fit-content;
-  overflow: visible;
-}
-
-/* 왼쪽 네온 바 (Bar) */
-.history-item::before {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 16px;
-  background-color: var(--accent);
-  margin-right: 16px;
-  /* 글자와의 간격 넓힘 */
-  border-radius: 2px;
-  opacity: 0.3;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.history-item.selected::before {
-  height: auto;
-  /* 고정 높이 해제 */
-  align-self: stretch;
-  /* 부모 높이만큼 늘어남 */
-  opacity: 1;
-  box-shadow: 0 0 8px var(--accent);
-  margin-top: 2px;
-  margin-bottom: 2px;
-}
-
-.history-item:hover::before {
-  opacity: 1;
-  box-shadow: 0 0 8px var(--accent);
-}
-
-.item-memo {
-  font-size: 13px;
-  font-weight: 500;
-  /* 너무 두껍지 않게 조절 */
-  color: #E2E2B6;
-  /* 약간 부드러운 노란색(Cream) */
-  letter-spacing: 0.03em;
-  /* 자간 확보 */
-  line-height: 1.4;
-  /* 행간 추가로 시각적 안정감 부여 */
-  margin-bottom: 4px;
-  /* 본문과의 간격 살짝 축소 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item-content {
-  flex: 1;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  /* 본문 채도를 낮춰 타이틀 강조 */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-}
-
-.history-item.selected .item-content {
-  color: var(--text-main);
-  /* 선택 시에는 다시 선명하게 */
-  white-space: pre-wrap;
-  overflow-y: auto;
-  max-height: 350px;
-  padding-right: 6px;
-  margin-top: 4px;
-  margin-bottom: 16px;
-  /* 하단 요소와의 여백 */
-  line-height: 1.6;
-  /* 행간을 넓혀 답답함 해소 */
-  flex: none;
-  /* 높이 압축 방지 */
-  height: auto;
-  text-overflow: clip;
-  /* 말줄임표 제거 */
-  overflow-x: visible;
-}
-
-/* New Item 버튼 전용: 하단 여백 제거 (중앙 정렬 유지) */
-.btn-new-item .item-content {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-/* 텍스트 영역 스크롤바 디자인 */
-.history-item.selected .item-content::-webkit-scrollbar {
-  width: 4px;
-  height: 0;
-  /* 가로 스크롤바(노란 영역) 제거 */
-}
-
-.history-item.selected .item-content::-webkit-scrollbar-thumb {
-  background: rgba(220, 220, 87, 0.3);
-  border-radius: 10px;
-}
-
-.history-item.selected .item-content::-webkit-scrollbar-corner {
-  background: transparent;
-  /* 하얀색 점(코너) 제거 */
-}
-
-.item-meta {
-  display: none;
-  /* 평소에는 숨김 */
-  color: var(--text-sub);
-  font-size: 11px;
-  font-family: monospace;
-  opacity: 0.6;
-}
-
-.history-item.selected .item-meta {
-  display: flex;
-  /* 선택 시에만 표시 */
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 8px;
-  padding-bottom: 8px;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* 액션 바 스타일 */
-.item-actions {
-  display: none;
-  gap: 8px;
-  width: 100%;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 12px;
-  padding-bottom: 4px;
-  /* 버튼 하단에 살짝 여유 공간 추가 */
-  flex-shrink: 0;
-}
-
-.history-item.selected .item-actions {
-  display: flex;
-}
-
-.btn-mini {
-  padding: 4px 10px;
-  font-size: 11px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-sub);
-}
-
-.btn-mini:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-}
-
-.btn-mini.primary {
-  background: var(--accent);
-  color: black;
-  border: none;
-}
-
-.btn-mini.danger:hover {
-  background: #ff5555;
-  color: white;
-  border-color: #ff5555;
-}
-
-/* 편집 모드 메모 입력창 */
-.memo-area {
-  width: 100%;
-  background: rgba(220, 220, 87, 0.05);
-  border: 1px solid rgba(220, 220, 87, 0.3);
-  color: var(--accent);
-  border-radius: 4px;
-  padding: 8px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  outline: none;
-  margin-bottom: 8px;
-  transition: all 0.2s;
-}
-
-.memo-area:focus {
-  background: rgba(220, 220, 87, 0.1);
-  border-color: var(--accent);
-}
-
-/* 인라인 아이템 추가 */
-.btn-new-item.active {
-  background: rgba(220, 220, 87, 0.03);
-  align-items: stretch;
-  cursor: default;
-}
-
-.btn-new-item.active .item-body {
-  gap: 10px;
-  padding: 4px 0;
-}
-
-/* 편집 모드 및 인라인 입력 공통 */
-.edit-area,
-.inline-content {
-  width: 100%;
-  min-height: 120px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(220, 220, 87, 0.2);
-  color: white;
-  padding: 10px;
-  border-radius: 6px;
-  outline: none;
-  resize: vertical;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 8px;
-  transition: all 0.2s;
-}
-
-.inline-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-
-/* 2. 폴더(디렉토리) 아이템 - 히스토리 아이템 스타일 상속 */
-.dir-item {
-  display: flex;
-  align-items: center;
-  background: transparent;
-  border-radius: 6px;
-  padding: 12px 12px;
-  /* 폴더는 조금 더 넉넉하게 */
-  cursor: pointer;
-  transition: background 0.1s;
-  position: relative;
-  color: var(--text-main);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  /* 아주 연한 구분선 */
-}
-
-.dir-item:hover,
-.dir-item.selected {
-  background-color: rgba(255, 255, 255, 0.05);
-  outline: none;
-  /* 파란색 테두리 제거 */
-}
-
-.dir-item.selected {
-  background-color: rgba(220, 220, 87, 0.1);
-  /* 선택 시 엑센트 컬러 미세하게 배합 */
-}
-
-/* 폴더 아이템 왼쪽 네온 바 (기본 회색) */
-.dir-item::before {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 18px;
-  background-color: var(--text-sub);
-  margin-right: 12px;
-  border-radius: 2px;
-  opacity: 0.4;
-  transition: all 0.2s;
-}
-
-/* 호버 시 폴더도 형광색으로 빛남 */
-.dir-item:hover::before,
-.dir-item.selected::before {
-  background-color: var(--accent);
-  opacity: 1;
-  box-shadow: 0 0 8px var(--accent);
-}
-
-.dir-name {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 400;
-}
-
-.dir-count {
-  font-size: 12px;
-  color: var(--text-sub);
-  background: rgba(255, 255, 255, 0.08);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-/* 3. 새 폴더 추가 버튼 (목록 내 인라인) */
-.btn-new-folder {
-  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-top: 12px;
-  opacity: 0.8;
-  padding: 10px 12px;
-}
-
-.btn-new-folder.active {
-  background-color: rgba(220, 220, 87, 0.05);
-  opacity: 1;
-}
-
-.inline-input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--text-main);
-  font-size: 15px;
-  outline: none;
-  padding: 0;
-  margin: 0;
-  font-family: inherit;
-}
-
-.inline-input::placeholder {
-  color: var(--text-sub);
-  opacity: 0.5;
-}
-
-.btn-new-folder::before {
-  content: '＋' !important;
-  /* 바 대신 + 기호 */
-  background: none !important;
-  box-shadow: none !important;
-  color: var(--accent);
-  font-size: 18px;
-  width: auto !important;
-  height: auto !important;
-  opacity: 1 !important;
-  margin-right: 8px !important;
-}
-
-.btn-new-folder:hover {
-  opacity: 1;
-  background-color: rgba(220, 220, 87, 0.05) !important;
-}
-
-#context-menu {
-  position: fixed;
-  z-index: 1000;
-  background: rgba(18, 18, 18, 0.98);
-  /* 모달과 동일한 딥 블랙 */
-  border: 1px solid rgba(220, 220, 87, 0.2);
-  /* 노란색 미세 테두리 */
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-  padding: 4px 0;
-  min-width: 110px;
-  /* 크기 축소 */
-  backdrop-filter: blur(10px);
-}
-
-.menu-item {
-  padding: 7px 12px;
-  /* 패딩 축소 */
-  font-size: 12.5px;
-  /* 글자 크기도 미세하게 조절 */
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.menu-item:hover {
-  background: var(--accent);
-  /* 노란색 배경 */
-  color: #000;
-  /* 검은색 글자 */
-}
-
-.menu-item#menu-delete:hover {
-  background: #ff4444;
-  /* 삭제는 빨간색 유지 */
-  color: white;
-}
-
-/* =========================================================
-   커스텀 모달 스타일 (Glassmorphism & Black & Yellow)
-   ========================================================= */
-#modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-#modal-box {
-  background: rgba(18, 18, 18, 0.98);
-  /* 순수 딥 블랙 */
-  border: 1px solid rgba(220, 220, 87, 0.2);
-  /* 엑센트 컬러 미세 테두리 */
-  border-radius: 12px;
-  padding: 24px;
-  width: 320px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  animation: modalIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: scale(0.98) translateY(8px);
+    background-color: rgba(220, 220, 87, 0.05);
   }
 
-  to {
+  .btn-new::before {
+    content: "＋";
+    color: var(--color-accent);
+    /* 기호는 항상 형광색 */
+    font-size: 18px;
+    font-weight: bold;
+    margin-right: 12px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Inline Creation Styles */
+  .inline-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--color-text-main);
+    font-size: 15px;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+  }
+
+  .inline-input::placeholder {
+    color: var(--color-text-sub);
+    opacity: 0.5;
+  }
+
+  .inline-memo {
+    width: 100%;
+    background: rgba(220, 220, 87, 0.05);
+    border: 1px solid rgba(220, 220, 87, 0.2);
+    color: var(--color-accent);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+
+  .inline-content {
+    width: 100%;
+    min-height: 120px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(220, 220, 87, 0.2);
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+
+  .inline-memo:focus,
+  .inline-content:focus {
+    border-color: var(--color-accent);
+    background: rgba(220, 220, 87, 0.08);
+    box-shadow: 0 0 0 2px rgba(220, 220, 87, 0.1);
+  }
+
+  .inline-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .btn-new.active {
+    background-color: rgba(220, 220, 87, 0.05);
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
-}
 
-#modal-title {
-  color: var(--accent);
-  /* 다시 노란색으로 통일 */
-  margin-bottom: 12px;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-}
+  .btn-mini.danger.primary {
+    background-color: var(--color-accent-danger);
+    color: white;
+    border-color: var(--color-accent-danger);
+  }
 
-#modal-body {
-  margin-bottom: 24px;
-}
-
-#modal-text {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-#modal-input {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 10px 12px;
-  border-radius: 6px;
-  outline: none;
-  font-size: 14px;
-  margin-top: 10px;
-}
-
-#modal-input:focus {
-  border-color: var(--accent);
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.modal-buttons button {
-  padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-#modal-confirm {
-  background: var(--accent);
-  color: #000;
-  border: none;
-}
-
-#modal-confirm:hover {
-  filter: brightness(1.2);
-  transform: translateY(-1px);
-}
-
-/* 삭제 등 위험 동작 버튼 */
-#modal-confirm.btn-danger {
-  background: #ff4444;
-  color: white;
-}
-
-#modal-confirm.btn-danger:hover {
-  background: #ff2222;
-  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
-}
-
-#modal-cancel {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.7);
-  border: none;
-}
-
-#modal-cancel:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
+  .header-title-container:focus-within h1 {
+    opacity: 0 !important;
+  }
 }
