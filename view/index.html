@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PasteSheet</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div id="view-directories" class="view-page">
+      <header class="app-header">
+        <div class="header-title-container">
+          <h1 id="main-brand-title">PasteSheet</h1>
+          <input type="text" id="dir-search" class="header-search" placeholder="Search Anything..." spellcheck="false"
+            autocomplete="off">
+        </div>
+      </header>
+
+      <div id="directory-list" class="content-list">
+      </div>
+    </div>
+
+    <div id="view-items" class="view-page hidden">
+      <header class="app-header header-row">
+        <div class="header-left">
+          <button class="btn-back" onclick="showDirectoryView()">◀</button>
+          <div class="header-title-container" style="margin-left: 5px;">
+            <h1 id="current-folder-title" class="view-folder">Folder</h1>
+            <input type="text" id="item-search" class="header-search" placeholder="Search Items..." spellcheck="false"
+              autocomplete="off">
+          </div>
+        </div>
+      </header>
+
+      <div id="history-list" class="content-list"></div>
+    </div>
+
+  </div>
+  <div id="context-menu" class="hidden">
+    <div class="menu-item" id="menu-rename" onclick="doRename(event)">Rename</div>
+    <div class="menu-item" id="menu-delete" onclick="doDelete(event)">Delete</div>
+  </div>
+
+  <!-- 커스텀 모달 -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal-box">
+      <h3 id="modal-title">확인</h3>
+      <div id="modal-body">
+        <input type="text" id="modal-input" class="hidden">
+        <p id="modal-text"></p>
+      </div>
+      <div class="modal-buttons">
+        <button id="modal-cancel">취소</button>
+        <button id="modal-confirm" class="btn-danger">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+
+</html>

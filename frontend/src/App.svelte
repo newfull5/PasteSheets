@@ -247,10 +247,12 @@
   }
 
   function startEdit(item) {
+    console.log("App: startEdit called for item", item?.id);
     if (!item) return;
     editingId = item.id;
     editContent = item.content;
     editMemo = item.memo || "";
+    if (item.directory) currentDirId = item.directory;
   }
 
   async function saveEdit() {
@@ -481,10 +483,15 @@
             {filteredDirectories}
             filteredItems={globalFilteredItems}
             bind:selectedIndex
+            bind:editingId
+            bind:editContent
+            bind:editMemo
             on:openFolder={(e) => showItemView(e.detail)}
             on:paste={(e) => useItem(e.detail)}
             on:edit={(e) => startEdit(e.detail)}
             on:delete={(e) => deleteItem(e.detail)}
+            on:save={saveEdit}
+            on:cancel={() => (editingId = null)}
             on:view={(e) => handleView(e.detail)}
           />
         </div>

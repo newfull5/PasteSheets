@@ -12,6 +12,11 @@
 
   const dispatch = createEventDispatcher();
 
+  function handleBack() {
+    console.log("HistoryItem: handleBack called");
+    dispatch("back");
+  }
+
   // Button refs for focus management
   let pasteBtn;
   let editBtn;
@@ -35,6 +40,7 @@
   }
 
   function handleEdit() {
+    console.log("HistoryItem: dispatching edit for item", item.id);
     dispatch("edit", item);
   }
 
