@@ -13,6 +13,7 @@
 
   const dispatch = createEventDispatcher();
   let confirmBtn;
+  let cancelBtn;
 
   $: if (show && confirmBtn && !showInput) {
     // Only autofocus confirm button if there's no input field
@@ -48,6 +49,26 @@
       e.stopPropagation();
       handleConfirm();
     }
+    // 좌우 방향키로 버튼 간 이동 (input에 포커스가 있을 때는 제외)
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      const activeElement = document.activeElement;
+      // input/textarea에 포커스가 있으면 방향키를 텍스트 커서 이동에 사용
+      if (
+        activeElement?.tagName === "INPUT" ||
+        activeElement?.tagName === "TEXTAREA"
+      ) {
+        return; // 브라우저 기본 동작 허용
+      }
+
+      // 버튼에 포커스가 있을 때만 버튼 간 이동
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeElement === confirmBtn && cancelBtn) {
+        cancelBtn.focus();
+      } else if (activeElement === cancelBtn && confirmBtn) {
+        confirmBtn.focus();
+      }
+    }
   }
 </script>
 
@@ -82,7 +103,8 @@
 
       <div class="flex justify-end gap-3">
         <button
-          class="px-4 py-2 rounded-lg bg-white/5 text-text-main text-sm font-medium hover:bg-white/10 transition-all outline-none focus:ring-2 focus:ring-white/30"
+          bind:this={cancelBtn}
+          class="px-4 py-2 rounded-lg bg-white/5 text-text-main text-sm font-medium hover:bg-white/10 transition-all outline-none focus:bg-white/20 focus:scale-105"
           on:click={handleCancel}
         >
           {cancelText}
@@ -90,8 +112,8 @@
         <button
           bind:this={confirmBtn}
           class="px-4 py-2 rounded-lg text-sm font-bold transition-all outline-none {isDanger
-            ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_4px_12px_rgba(239,68,68,0.3)] focus:ring-[3px] focus:ring-red-300/60'
-            : 'bg-accent text-bg-app hover:brightness-110 shadow-[0_4px_12px_rgba(220,220,87,0.3)] focus:ring-[3px] focus:ring-accent/60'}"
+            ? 'bg-red-500 text-white hover:bg-red-600 shadow-[0_4px_12px_rgba(239,68,68,0.3)] focus:bg-red-450 focus:scale-105 focus:shadow-[0_6px_24px_rgba(239,68,68,0.6)]'
+            : 'bg-accent text-bg-app hover:brightness-110 shadow-[0_4px_12px_rgba(220,220,87,0.3)] focus:brightness-125 focus:scale-105 focus:shadow-[0_6px_24px_rgba(220,220,87,0.6)]'}"
           on:click={handleConfirm}
         >
           {confirmText}

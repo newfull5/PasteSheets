@@ -331,17 +331,32 @@
         editingId = null;
         return;
       }
-      if (searchQuery) {
+      // 검색창에 포커스가 있거나 검색어가 있으면 먼저 처리
+      if (isSearchInput || searchQuery) {
         searchQuery = "";
-        if (isInput) event.target.blur();
+        if (isSearchInput) {
+          event.target.blur(); // 포커스 해제
+        }
         return;
       }
+      // 모든 상태가 클리어되면 창 닫기
       invoke("toggle_main_window");
       return;
     }
 
     // 2. 모달이 열려있을 때 Enter 처리
     if (modalConfig.show) {
+      // input/textarea에서는 키 입력 허용
+      if (isInput) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          // Modal component handles Enter for input
+          return;
+        }
+        // input/textarea에서는 다른 키 입력 허용
+        return;
+      }
+
       if (event.key === "Enter") {
         event.preventDefault();
         // Modal component already listens for Enter and dispatches 'confirm'
@@ -350,6 +365,7 @@
         return;
       }
       // 블락: 모달이 떠있을 때는 모든 키 입력을 차단 (Tab, 방향키 포함)
+      // 단, input/textarea는 위에서 이미 처리됨
       event.preventDefault();
       return;
     }
@@ -462,8 +478,11 @@
 
 <div
   class="w-full h-full max-h-screen bg-bg-container rounded-l-[16px] border-l border-t border-b border-white/10 flex flex-col overflow-hidden relative shadow-[-4px_0_15px_rgba(0,0,0,0.5)] transition-[var(--transition-app-container)] {isVisible
-    ? 'opacity-100 translate-x-0 pointer-events-auto'
-    : 'opacity-0 translate-x-[60px] pointer-events-none'}"
+    ? 'opacity-100 translate-x-0'
+    : 'opacity-0 translate-x-[60px] pointer-events-none'} {modalConfig.show ||
+  detailItem !== null
+    ? 'pointer-events-none'
+    : 'pointer-events-auto'}"
 >
   <div class="p-4 flex flex-col h-full">
     <Header

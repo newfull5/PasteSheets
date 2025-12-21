@@ -34,6 +34,3 @@ ui/dist/
 
 # macOS
 .DS_Store
-
-# legacy
-/view/*
