@@ -34,15 +34,8 @@
       const itemIdx = selectedIndex - totalFolders;
       const item = filteredItems[itemIdx];
       if (item) {
-        console.log(
-          "SearchView: Executing action",
-          buttonFocusIndex,
-          "on item",
-          item.id,
-        );
         if (buttonFocusIndex === 0) dispatch("paste", item);
         else if (buttonFocusIndex === 1) {
-          console.log("SearchView: Dispatching edit for", item.id);
           dispatch("edit", item);
         } else if (buttonFocusIndex === 2) dispatch("delete", item.id);
       }
@@ -69,8 +62,6 @@
       }
     }
   }
-
-  $: if (editingId) console.log("SearchView: editingId updated to", editingId);
 
   let lastSelectedIndex = -1;
   $: if (selectedIndex !== lastSelectedIndex) {
@@ -128,10 +119,6 @@
                 on:select={() => (selectedIndex = totalFolders + i)}
                 on:paste={() => dispatch("paste", item)}
                 on:edit={() => {
-                  console.log(
-                    "SearchView: Caught edit from HistoryItem",
-                    item.id,
-                  );
                   dispatch("edit", item);
                 }}
                 on:delete={() => dispatch("delete", item.id)}

@@ -168,18 +168,6 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    animation: slideIn 0.2s ease-out;
-  }
-
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateX(5px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
   }
 
   .app-header {
@@ -279,6 +267,7 @@
     position: relative;
     color: var(--color-text-main);
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    outline: none;
   }
 
   .dir-item:hover,

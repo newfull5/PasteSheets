@@ -44,7 +44,6 @@
       if (e.target.tagName === "INPUT" && e.target !== document.activeElement)
         return;
 
-      console.log("[DEBUG] Modal Enter triggered");
       e.preventDefault();
       e.stopPropagation();
       handleConfirm();

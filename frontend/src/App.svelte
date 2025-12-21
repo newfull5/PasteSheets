@@ -248,7 +248,6 @@
   }
 
   function startEdit(item) {
-    console.log("App: startEdit called for item", item?.id);
     if (!item) return;
     editingId = item.id;
     editContent = item.content;
@@ -533,7 +532,7 @@
           />
         </div>
       {:else}
-        <div class="absolute inset-0" transition:fly={{ x: 10, duration: 150 }}>
+        <div class="absolute inset-0">
           <ItemView
             bind:this={itemView}
             historyItems={filteredItems}
