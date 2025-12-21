@@ -4,7 +4,7 @@
 
   export let x = 0;
   export let y = 0;
-  export let options = []; // Array of { label: string, action: string, danger?: boolean }
+  export let options = [];
 
   const dispatch = createEventDispatcher();
 

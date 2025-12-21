@@ -103,7 +103,6 @@ pub fn run() {
             let db_path = db::get_path();
             debug!("Database path: {:?}", db_path);
 
-            // Tray Icon Setup
             let quit_i = MenuItem::with_id(app, "quit", "Quit PasteSheet", true, None::<&str>)?;
             let show_i = MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
@@ -140,7 +139,6 @@ pub fn run() {
             hotkey::setup_global_hotkey(app.handle().clone())?;
             info!("Global hotkey setup completed");
 
-            // 마우스 엣지 감지 시작
             window_manager::start_mouse_edge_monitor(app.handle().clone())?;
             info!("Mouse edge detection started");
 

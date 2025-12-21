@@ -14,15 +14,6 @@
   }
 
   function handleCopy() {
-    // navigator.clipboard.writeText(content); // Browser API might not work in Tauri context without permission or correct focus
-    // Instead emit copy event to parent which uses backend specific logic if needed,
-    // but for simple text copy standard API often works.
-    // Let's rely on parent to handle 'copy' or just try standard API.
-    // For now, let's just emit 'copy' and let parent handle it via backend invoke if needed, or just do it here.
-    // Actually, `invoke("paste_text")` is what we use for "Paste to formatting", but for "Copy to Clipboard",
-    // we might need a backend command or just try navigator.clipboard.
-
-    // Attempt standard copy first
     navigator.clipboard
       .writeText(content)
       .then(() => {
@@ -30,7 +21,7 @@
       })
       .catch((err) => {
         console.error("Failed to copy", err);
-        dispatch("copy"); // Still dispatch so parent can try fallback if we implement it
+        dispatch("copy");
       });
   }
 
@@ -52,14 +43,16 @@
     on:keydown={(e) => e.key === "Escape" && handleClose()}
     role="button"
     tabindex="-1"
-    aria-modal="true"
   >
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div
       class="bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl w-[90%] max-w-3xl max-h-[80vh] flex flex-col overflow-hidden"
       transition:scale={{ duration: 200, start: 0.95 }}
       on:click|stopPropagation={() => {}}
       on:keydown|stopPropagation={() => {}}
-      role="document"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
       tabindex="-1"
     >
       <div

@@ -16,14 +16,12 @@
     dispatch("back");
   }
 
-  // Button refs for focus management
   let pasteBtn;
   let editBtn;
   let deleteBtn;
 
   export let activeButtonIndex = -1; // -1: none, 0: Paste, 1: Edit, 2: Delete
 
-  // Exposed function to focus buttons
   export function focusButton(index) {
     if (index === 0 && pasteBtn) pasteBtn.focus();
     if (index === 1 && editBtn) editBtn.focus();

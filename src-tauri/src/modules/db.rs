@@ -1,5 +1,4 @@
 use rusqlite::{Connection, Result};
-use serde::{Deserialize, Serialize};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct DirectoryInfo {
@@ -16,7 +15,6 @@ pub struct PasteItem {
     pub memo: Option<String>,
 }
 
-// 모든 디렉토리와 각각의 아이템 개수 조회 (빈 디렉토리 포함)
 pub fn get_directories() -> Result<Vec<DirectoryInfo>> {
     let conn = Connection::open(get_path())?;
     let mut stmt = conn.prepare(
@@ -48,7 +46,6 @@ pub fn get_path() -> String {
 pub fn init_db() -> Result<Connection> {
     let conn = Connection::open(get_path())?;
 
-    // 디렉토리 테이블 생성
     conn.execute(
         "CREATE TABLE IF NOT EXISTS directories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,13 +55,11 @@ pub fn init_db() -> Result<Connection> {
         [],
     )?;
 
-    // 기본 디렉토리 삽입
     conn.execute(
         "INSERT OR IGNORE INTO directories (name) VALUES ('Clipboard')",
         [],
     )?;
 
-    // 붙여넣기 항목 테이블 생성
     conn.execute(
         "CREATE TABLE IF NOT EXISTS paste_sheets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +72,6 @@ pub fn init_db() -> Result<Connection> {
         [],
     )?;
 
-    // 마이그레이션: memo 컬럼이 없는 경우 추가
     let has_memo = {
         let mut stmt = conn.prepare("PRAGMA table_info(paste_sheets)")?;
         let rows = stmt.query_map([], |row| {
@@ -101,7 +95,6 @@ pub fn init_db() -> Result<Connection> {
         conn.execute("ALTER TABLE paste_sheets ADD COLUMN memo TEXT", [])?;
     }
 
-    // 마이그레이션: 기존 paste_sheets에 있는 디렉토리들을 directories 테이블로 복사
     conn.execute(
         "INSERT OR IGNORE INTO directories (name)
          SELECT DISTINCT directory FROM paste_sheets",
@@ -133,13 +126,10 @@ pub fn rename_directory(old_name: &str, new_name: &str) -> Result<()> {
 
     let mut conn = Connection::open(get_path())?;
 
-    // 외래 키 제약 조건이 있으면 아이템이 들어있는 폴더의 이름 변경이 차단될 수 있습니다.
-    // 이를 일시적으로 끄고 두 테이블을 모두 업데이트한 뒤 다시 켭니다.
     conn.execute("PRAGMA foreign_keys = OFF", [])?;
 
     let tx = conn.transaction()?;
 
-    // 1. directories 테이블 업데이트
     let affected_dirs = tx.execute(
         "UPDATE directories SET name = ?1 WHERE name = ?2",
         [new_trimmed, old_trimmed],
@@ -150,7 +140,6 @@ pub fn rename_directory(old_name: &str, new_name: &str) -> Result<()> {
         return Err(rusqlite::Error::QueryReturnedNoRows);
     }
 
-    // 2. paste_sheets 테이블 업데이트
     let affected_items = tx.execute(
         "UPDATE paste_sheets SET directory = ?1 WHERE directory = ?2",
         [new_trimmed, old_trimmed],
@@ -159,7 +148,6 @@ pub fn rename_directory(old_name: &str, new_name: &str) -> Result<()> {
 
     tx.commit()?;
 
-    // 외래 키 체크 다시 활성화
     conn.execute("PRAGMA foreign_keys = ON", [])?;
     log::info!("[DB] Rename committed successfully");
 

@@ -15,7 +15,7 @@
   const dispatch = createEventDispatcher();
 
   let itemRefs = [];
-  let buttonFocusIndex = 0; // Default to first action (Paste)
+  let buttonFocusIndex = 0;
 
   $: filteredItems = historyItems;
 
@@ -183,6 +183,7 @@
         : ''} {isCreating ? 'active' : ''}"
       use:scrollSelected={selectedIndex === filteredItems.length}
       on:click={handleCreate}
+      on:keydown={(e) => (e.key === "Enter" || e.key === " ") && handleCreate()}
     >
       {#if isCreating}
         <div class="item-body" style="width: 100%;">
@@ -253,108 +254,6 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-  }
-
-  .app-header {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-    min-height: 40px;
-    flex-shrink: 0;
-  }
-
-  .header-row {
-    width: 100%;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .header-title-container {
-    position: relative;
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-
-  h1 {
-    color: var(--color-accent);
-    font-size: 22px;
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    margin: 0;
-    padding-left: 8px;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  h1.view-folder {
-    font-size: 18px;
-    opacity: 0.9;
-  }
-
-  h1::after {
-    content: "|";
-    color: var(--color-accent);
-    animation: blink 1s step-end infinite;
-    margin-left: 2px;
-  }
-
-  @keyframes blink {
-    50% {
-      opacity: 0;
-    }
-  }
-
-  :global(.header-search) {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    background: transparent !important;
-    border: none !important;
-    color: var(--color-accent) !important;
-    font-size: 22px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.03em !important;
-    outline: none !important;
-    padding: 0 0 0 8px !important;
-    margin: 0 !important;
-    opacity: 0 !important;
-    transition: opacity 0.2s ease !important;
-  }
-
-  :global(.header-search.active),
-  :global(.header-search:focus) {
-    opacity: 1 !important;
-  }
-
-  #view-items :global(.header-search) {
-    font-size: 18px !important;
-  }
-
-  .btn-back {
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    color: var(--color-accent);
-    padding: 4px 8px;
-    margin-right: 4px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s;
-  }
-
-  .btn-back:hover {
-    background: rgba(255, 255, 255, 0.1);
   }
 
   .content-list {
