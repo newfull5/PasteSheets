@@ -81,6 +81,7 @@ pub fn run() {
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 let _ = window.hide();
+                window_manager::set_window_state(false);
                 api.prevent_close();
             }
             _ => {}
