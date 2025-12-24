@@ -1,4 +1,4 @@
-# 📋 PasteSheets
+# PasteSheets
 
 **PasteSheets** is a premium clipboard manager designed for maximum productivity. Beyond simple history tracking, it empowers you to organize clipboard items into custom categories (folders) and instantly retrieve them using a powerful integrated search.
 
