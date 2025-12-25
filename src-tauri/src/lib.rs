@@ -108,8 +108,51 @@ pub fn run() {
             let show_i = MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
 
+            #[cfg(target_os = "macos")]
+            let tray_icon = {
+                let icon_bytes = include_bytes!("../icons/iconTemplate.png");
+                let img = image::load_from_memory(icon_bytes)
+                    .expect("Failed to load tray icon")
+                    .to_rgba8();
+                let (width, height) = img.dimensions();
+                let rgba = img.into_raw();
+                tauri::image::Image::new_owned(rgba, width, height)
+            };
+
+            #[cfg(not(target_os = "macos"))]
+            let tray_icon = app.default_window_icon().unwrap().clone();
+
+            #[cfg(target_os = "macos")]
             let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
+                .icon_as_template(true)
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "show" => {
+                        window_manager::toggle_main_window(app);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Down,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        window_manager::toggle_main_window(app);
+                    }
+                })
+                .build(app)?;
+
+            #[cfg(not(target_os = "macos"))]
+            let _tray = TrayIconBuilder::new()
+                .icon(tray_icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
