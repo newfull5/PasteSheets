@@ -23,7 +23,6 @@
   --color-text-sub: #68748d;
   --color-danger: #ff4444;
 
-  /* 커스텀 애니메이션 등록 */
   @keyframes blink {
     50% {
       opacity: 0;

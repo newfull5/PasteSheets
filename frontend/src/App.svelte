@@ -10,7 +10,6 @@
   import Modal from "./lib/Modal.svelte";
   import DetailModal from "./lib/DetailModal.svelte";
 
-  // --- 상태 관리 ---
   let isVisible = false;
   let currentView = "directories";
   let directories = [];
@@ -18,13 +17,12 @@
   let currentDirId = "";
   let searchQuery = "";
   let selectedIndex = 0;
+  let lastItemSelections = {}; // dirId -> selectedIndex
 
-  // 편집 상태
   let editingId = null;
   let editContent = "";
   let editMemo = "";
 
-  // 모달 상태
   let modalConfig = {
     show: false,
     title: "",
@@ -63,7 +61,6 @@
     closeModal();
   }
 
-  // 상세 보기 상태
   let detailItem = null;
 
   function handleView(item) {
@@ -78,7 +75,6 @@
 
   let isLoading = false;
 
-  // 필터링된 리스트 (반응형)
   $: filteredDirectories = directories.filter((d) =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
@@ -165,7 +161,14 @@
     currentDirId = dirName;
     currentView = "items";
     searchQuery = "";
-    selectedIndex = 0;
+
+    // Restore previous selection for this directory, or default to 0
+    if (lastItemSelections[dirName] !== undefined) {
+      selectedIndex = lastItemSelections[dirName];
+    } else {
+      selectedIndex = 0;
+    }
+
     await loadHistory();
   }
 
@@ -181,6 +184,11 @@
   }
 
   async function showDirectoryView() {
+    // Save current selection for the directory we are leaving
+    if (currentView === "items" && currentDirId) {
+      lastItemSelections[currentDirId] = selectedIndex;
+    }
+
     const lastActiveDir = currentDirId;
     currentView = "directories";
     searchQuery = "";
@@ -489,7 +497,10 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window
+  on:keydown={handleKeyDown}
+  on:contextmenu={(e) => e.preventDefault()}
+/>
 
 <div
   class="w-full h-full max-h-screen bg-bg-container rounded-l-[16px] border-l border-t border-b border-white/10 flex flex-col overflow-hidden relative shadow-[-4px_0_15px_rgba(0,0,0,0.5)] transition-[var(--transition-app-container)] {isVisible
