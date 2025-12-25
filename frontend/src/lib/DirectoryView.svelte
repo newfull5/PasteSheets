@@ -90,7 +90,13 @@
         use:scrollSelected={selectedIndex === i}
         on:click={() => handleOpen(dir.name)}
         on:contextmenu={(e) => handleContextMenu(e, dir)}
-        on:keydown={(e) => e.key === "Enter" && handleOpen(dir.name)}
+        on:keydown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
+            handleOpen(dir.name);
+          }
+        }}
       >
         <div class="dir-body">
           <span class="dir-name">{dir.name}</span>

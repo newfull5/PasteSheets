@@ -507,6 +507,17 @@
       event.preventDefault();
       if (activeFiltered[selectedIndex])
         handleView(activeFiltered[selectedIndex]);
+    } else if (event.key === "Enter" && !searchQuery) {
+      // Enter key handling when not in search mode
+      event.preventDefault();
+      if (currentView === "directories") {
+        const dir = filteredDirectories[selectedIndex];
+        if (dir) {
+          showItemView(dir.name);
+        }
+      } else if (currentView === "items" && itemView) {
+        itemView.executeSelectedAction();
+      }
     }
   }
 </script>
