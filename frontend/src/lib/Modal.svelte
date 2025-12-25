@@ -48,13 +48,15 @@
       e.stopPropagation();
       handleConfirm();
     }
+    // 좌우 방향키로 버튼 간 이동 (input에 포커스가 있을 때는 제외)
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       const activeElement = document.activeElement;
+      // input/textarea에 포커스가 있으면 방향키를 텍스트 커서 이동에 사용
       if (
         activeElement?.tagName === "INPUT" ||
         activeElement?.tagName === "TEXTAREA"
       ) {
-        return;
+        return; // 브라우저 기본 동작 허용
       }
 
       // 버튼에 포커스가 있을 때만 버튼 간 이동

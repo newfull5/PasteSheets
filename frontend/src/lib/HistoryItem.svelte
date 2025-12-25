@@ -318,7 +318,7 @@
     color: var(--color-text-sub);
     cursor: pointer;
     transition: all 0.2s;
-    outline: none;
+    outline: none; /* 브라우저 기본 파란색 테두리 제거 */
   }
 
   .btn-mini:hover {
