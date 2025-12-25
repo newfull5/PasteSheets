@@ -180,11 +180,27 @@
     }
   }
 
-  function showDirectoryView() {
+  async function showDirectoryView() {
+    const lastActiveDir = currentDirId;
     currentView = "directories";
     searchQuery = "";
-    selectedIndex = 0;
-    loadDirectories();
+
+    // Try to restore selection immediately
+    if (lastActiveDir) {
+      const idx = directories.findIndex((d) => d.name === lastActiveDir);
+      if (idx !== -1) selectedIndex = idx;
+      else selectedIndex = 0;
+    } else {
+      selectedIndex = 0;
+    }
+
+    await loadDirectories();
+
+    // Re-verify selection after loading to ensure it's still valid
+    if (lastActiveDir) {
+      const idx = directories.findIndex((d) => d.name === lastActiveDir);
+      if (idx !== -1) selectedIndex = idx;
+    }
   }
 
   // --- 액션 핸들러 ---
