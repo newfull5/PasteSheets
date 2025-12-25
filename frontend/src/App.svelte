@@ -524,6 +524,8 @@
         const dir = filteredDirectories[selectedIndex];
         if (dir) {
           showItemView(dir.name);
+        } else if (selectedIndex === filteredDirectories.length) {
+          if (directoryView) directoryView.handleCreate();
         }
       } else if (currentView === "items" && itemView) {
         itemView.executeSelectedAction();

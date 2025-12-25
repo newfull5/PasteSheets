@@ -38,7 +38,7 @@
     dispatch("delete", dirName);
   }
 
-  function handleCreate() {
+  export function handleCreate() {
     isCreating = true;
   }
 
