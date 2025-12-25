@@ -76,25 +76,7 @@
       if (action === "delete") handleDelete(contextMenu.targetDir.name);
     }
   }
-
-  function handleKeyDown(e) {
-    if (contextMenu.show || isCreating) return;
-    const isInput =
-      e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA";
-    if (isInput) return;
-
-    if (e.key === "Enter" || e.key === "ArrowRight") {
-      e.preventDefault();
-      if (selectedIndex === directories.length) {
-        handleCreate();
-      } else if (directories[selectedIndex]) {
-        handleOpen(directories[selectedIndex].name);
-      }
-    }
-  }
 </script>
-
-<svelte:window on:keydown={handleKeyDown} />
 
 <div id="view-directories" class="view-page">
   <div class="content-list">
