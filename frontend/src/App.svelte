@@ -431,9 +431,10 @@
         return;
       } else if (
         searchQuery &&
-        !isSearchInput && // 검색창에 포커스가 없을 때만 버튼 네비게이션
+        !isSearchInput &&
         (event.key === "ArrowRight" || event.key === "ArrowLeft")
       ) {
+        // Search mode navigation
         event.preventDefault();
         if (searchView) searchView.handleArrowKey(event.key);
         return;
@@ -441,7 +442,16 @@
         !searchQuery &&
         (event.key === "ArrowRight" || event.key === "ArrowLeft")
       ) {
-        // 검색어가 없을 때 방향키로 디렉토리 진입/나가기
+        // Delegate to ItemView if active
+        if (currentView === "items" && itemView) {
+          const handled = itemView.handleArrowKey(event.key);
+          if (handled) {
+            event.preventDefault();
+            return;
+          }
+        }
+
+        // Directory navigation
         if (event.key === "ArrowRight") {
           if (currentView === "directories") {
             const dir = filteredDirectories[selectedIndex];

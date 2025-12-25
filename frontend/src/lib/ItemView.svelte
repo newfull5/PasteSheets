@@ -110,38 +110,32 @@
     }
   }
 
-  function handleKeyDown(e) {
-    if (editingId !== null || isCreating) return;
+  export function handleArrowKey(key) {
+    if (editingId !== null || isCreating) return false;
 
-    const isInput =
-      e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA";
-    const isSearchInput = e.target.classList.contains("header-search");
-
-    if (e.key === "ArrowRight") {
-      // Only allow ArrowRight if not in an input, OR if in search input (we handle navigation there)
-      if (isInput && !isSearchInput) return;
-      e.preventDefault();
+    if (key === "ArrowRight") {
       if (buttonFocusIndex < 2) {
         buttonFocusIndex++;
         if (itemRefs[selectedIndex]) {
           itemRefs[selectedIndex].focusButton(buttonFocusIndex);
         }
+        return true;
       }
-    } else if (e.key === "ArrowLeft") {
-      if (isInput && !isSearchInput) return;
-      e.preventDefault();
+      return false; // Let parent handle it (though usually nothing to do)
+    } else if (key === "ArrowLeft") {
       if (buttonFocusIndex > 0) {
         buttonFocusIndex--;
-        if (itemRefs[selectedIndex])
+        if (itemRefs[selectedIndex]) {
           itemRefs[selectedIndex].focusButton(buttonFocusIndex);
+        }
+        return true; // We handled it (moved focus)
       } else {
-        dispatch("back");
+        return false; // We didn't handle it, so parent should go back
       }
     }
+    return false;
   }
 </script>
-
-<svelte:window on:keydown={handleKeyDown} />
 
 <div id="view-items" class="view-page">
   <div class="content-list">
