@@ -88,8 +88,7 @@
         tabindex="0"
         class="dir-item {selectedIndex === i ? 'selected' : ''}"
         use:scrollSelected={selectedIndex === i}
-        on:click={() => handleSelect(i)}
-        on:dblclick={() => handleOpen(dir.name)}
+        on:click={() => handleOpen(dir.name)}
         on:contextmenu={(e) => handleContextMenu(e, dir)}
         on:keydown={(e) => e.key === "Enter" && handleOpen(dir.name)}
       >
