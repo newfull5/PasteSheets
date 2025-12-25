@@ -445,6 +445,28 @@
         event.preventDefault();
         if (searchView) searchView.handleArrowKey(event.key);
         return;
+      } else if (
+        !searchQuery &&
+        (event.key === "ArrowRight" || event.key === "ArrowLeft")
+      ) {
+        // 검색어가 없을 때 방향키로 디렉토리 진입/나가기
+        if (event.key === "ArrowRight") {
+          if (currentView === "directories") {
+            const dir = filteredDirectories[selectedIndex];
+            if (dir) {
+              event.preventDefault();
+              showItemView(dir.name);
+              if (isSearchInput) event.target.blur();
+            }
+          }
+        } else if (event.key === "ArrowLeft") {
+          if (currentView === "items") {
+            event.preventDefault();
+            showDirectoryView();
+            if (isSearchInput) event.target.blur();
+          }
+        }
+        return;
       }
     }
 

@@ -15,6 +15,10 @@
   export function focus() {
     if (inputRef) inputRef.focus();
   }
+
+  export function blur() {
+    if (inputRef) inputRef.blur();
+  }
 </script>
 
 <input
