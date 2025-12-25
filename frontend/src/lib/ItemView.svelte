@@ -137,11 +137,6 @@
       } else {
         dispatch("back");
       }
-    } else if (e.key === "Enter") {
-      // If we are in search input, App.svelte handles Enter
-      if (isSearchInput) return;
-      e.preventDefault();
-      executeSelectedAction();
     }
   }
 </script>

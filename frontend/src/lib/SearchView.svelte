@@ -85,8 +85,6 @@
                 : ''}"
               use:scrollSelected={selectedIndex === i}
               on:click={() => dispatch("openFolder", dir.name)}
-              on:keydown={(e) =>
-                e.key === "Enter" && dispatch("openFolder", dir.name)}
             >
               <div class="dir-icon"></div>
               <span class="dir-name">{dir.name}</span>
