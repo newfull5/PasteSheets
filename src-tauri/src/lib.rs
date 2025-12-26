@@ -110,7 +110,25 @@ pub fn run() {
 
             #[cfg(target_os = "macos")]
             let tray_icon = {
-                let icon_bytes = include_bytes!("../icons/iconTemplate.png");
+                // Detect display scale factor to choose appropriate icon resolution
+                let scale_factor = app
+                    .primary_monitor()
+                    .ok()
+                    .flatten()
+                    .map(|m| m.scale_factor())
+                    .unwrap_or(2.0); // Default to 2.0 for Retina displays
+
+                debug!("Display scale factor: {}", scale_factor);
+
+                // Select icon based on scale factor
+                let icon_bytes: &[u8] = if scale_factor >= 2.0 {
+                    // Retina and higher displays
+                    include_bytes!("../icons/iconTemplate@2x.png")
+                } else {
+                    // Standard resolution displays
+                    include_bytes!("../icons/iconTemplate.png")
+                };
+
                 let img = image::load_from_memory(icon_bytes)
                     .expect("Failed to load tray icon")
                     .to_rgba8();
