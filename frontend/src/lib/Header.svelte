@@ -40,6 +40,11 @@
         />
       </div>
     </div>
+    <div class="header-right">
+      <button class="btn-settings" on:click={() => dispatch('settings')} title="Settings">
+        ⚙
+      </button>
+    </div>
   </div>
 </header>
 
@@ -55,6 +60,9 @@
 
   .header-row {
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .header-left {
@@ -144,5 +152,33 @@
 
   .btn-back:hover {
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+  }
+
+  .btn-settings {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: var(--color-accent);
+    opacity: 0.7;
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .btn-settings:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+    transform: rotate(30deg);
   }
 </style>

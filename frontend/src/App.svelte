@@ -555,6 +555,13 @@
       showBack={currentView === "items" && !searchQuery}
       bind:searchQuery
       on:back={showDirectoryView}
+      on:settings={() =>
+        openModal({
+          title: "Settings",
+          message:
+            "Settings view is coming soon! For now, you can adjust the window width in tauri.conf.json.",
+          confirmText: "OK",
+        })}
     />
 
     <div class="flex-1 overflow-hidden relative">
