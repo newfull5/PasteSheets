@@ -15,7 +15,7 @@
     "windows": [
       {
         "title": "PasteSheet",
-        "width": 410,
+        "width": 380,
         "height": 800,
         "resizable": false,
         "fullscreen": false,
