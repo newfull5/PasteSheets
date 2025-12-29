@@ -45,7 +45,19 @@ pub fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
 
             #[cfg(target_os = "macos")]
             if let Some(screen) = get_active_screen_info() {
-                let window_width = 410.0;
+                let window_width = window
+                    .inner_size()
+                    .ok()
+                    .map(|s| {
+                        let scale = window
+                            .current_monitor()
+                            .ok()
+                            .flatten()
+                            .map(|m| m.scale_factor())
+                            .unwrap_or(2.0);
+                        s.width as f64 / scale
+                    })
+                    .unwrap_or(410.0);
                 let x = screen.x + screen.width - window_width;
                 let y = screen.y;
 
@@ -87,7 +99,20 @@ fn set_window_position<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         #[cfg(target_os = "macos")]
         if let Some(screen) = get_active_screen_info() {
-            let window_width = 410.0;
+            let window_width = window
+                .inner_size()
+                .ok()
+                .map(|s| {
+                    let scale = window
+                        .current_monitor()
+                        .ok()
+                        .flatten()
+                        .map(|m| m.scale_factor())
+                        .unwrap_or(2.0);
+                    s.width as f64 / scale
+                })
+                .unwrap_or(410.0);
+
             let x = screen.x + screen.width - window_width;
             let y = screen.y;
 
@@ -127,9 +152,23 @@ fn setup_mouse_event_monitoring<R: Runtime>(app: AppHandle<R>) {
         if let Some(screen) = get_active_screen_info() {
             if let Some((mouse_x, _)) = get_mouse_location() {
                 if let Some(window) = app.get_webview_window("main") {
+                    let window_width = window
+                        .inner_size()
+                        .ok()
+                        .map(|s| {
+                            let scale = window
+                                .current_monitor()
+                                .ok()
+                                .flatten()
+                                .map(|m| m.scale_factor())
+                                .unwrap_or(2.0);
+                            s.width as f64 / scale
+                        })
+                        .unwrap_or(410.0);
+
                     let right_edge = screen.x + screen.width;
                     let show_threshold = 2.0;
-                    let hide_threshold = 410.0;
+                    let hide_threshold = window_width;
 
                     let at_right_edge = mouse_x >= right_edge - show_threshold;
                     let outside_window = mouse_x < right_edge - hide_threshold;
@@ -140,7 +179,6 @@ fn setup_mouse_event_monitoring<R: Runtime>(app: AppHandle<R>) {
                     if at_right_edge && !*visible {
                         if !window.is_visible().unwrap_or(false) {
                             // Reposition to the detected screen's right edge
-                            let window_width = 410.0;
                             let x = right_edge - window_width;
                             let y = screen.y;
 

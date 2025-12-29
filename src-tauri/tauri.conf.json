@@ -17,7 +17,7 @@
         "title": "PasteSheet",
         "width": 410,
         "height": 800,
-        "resizable": true,
+        "resizable": false,
         "fullscreen": false,
         "decorations": false,
         "transparent": true,
