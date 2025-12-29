@@ -1,7 +1,7 @@
 #![allow(unexpected_cfgs)]
 use log::debug;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, Manager, Runtime};
+use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Runtime};
 
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
@@ -19,11 +19,6 @@ pub fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         let mut visible = IS_WINDOW_VISIBLE.lock().unwrap();
         let mut auto_hide = IS_AUTO_HIDE_ENABLED.lock().unwrap();
-
-        // let actual_visible = window.is_visible().unwrap_or(false);
-        // if *visible != actual_visible {
-        //     *visible = actual_visible;
-        // }
 
         if *visible {
             *visible = false;
@@ -48,33 +43,14 @@ pub fn toggle_main_window<R: Runtime>(app: &AppHandle<R>) {
             *visible = true;
             *auto_hide = false;
 
-            // Reposition window to the monitor containing the mouse
-            if let Some((mouse_x, _mouse_y)) = get_mouse_location() {
-                if let Ok(monitors) = window.available_monitors() {
-                    for monitor in monitors {
-                        let scale_factor = monitor.scale_factor();
-                        let pos = monitor.position();
-                        let size = monitor.size();
+            #[cfg(target_os = "macos")]
+            if let Some(screen) = get_active_screen_info() {
+                let window_width = 410.0;
+                let x = screen.x + screen.width - window_width;
+                let y = screen.y;
 
-                        let left = pos.x as f64 / scale_factor;
-                        let width = size.width as f64 / scale_factor;
-                        let right = left + width;
-
-                        if mouse_x >= left && mouse_x <= right {
-                            let window_width = 410.0;
-                            let x = right - window_width;
-                            let y = pos.y as f64 / scale_factor;
-
-                            use tauri::LogicalPosition;
-                            let _ = window.set_position(LogicalPosition::new(x, y));
-                            debug!(
-                                "✅ Window repositioned to active monitor (Logical): ({}, {})",
-                                x, y
-                            );
-                            break;
-                        }
-                    }
-                }
+                let _ = window.set_position(LogicalPosition::new(x, y));
+                debug!("✅ Window repositioned to active monitor: ({}, {})", x, y);
             }
 
             let _ = window.show();
@@ -109,8 +85,18 @@ fn set_window_position<R: Runtime>(app: &AppHandle<R>) {
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     if let Some(window) = app.get_webview_window("main") {
-        use tauri::LogicalPosition;
+        #[cfg(target_os = "macos")]
+        if let Some(screen) = get_active_screen_info() {
+            let window_width = 410.0;
+            let x = screen.x + screen.width - window_width;
+            let y = screen.y;
 
+            let _ = window.set_position(LogicalPosition::new(x, y));
+            debug!("✅ Window initially positioned: ({}, {})", x, y);
+            return;
+        }
+
+        // Fallback for non-macOS or if detection fails
         if let Ok(monitors) = window.available_monitors() {
             if let Some(monitor) = monitors.first() {
                 let scale_factor = monitor.scale_factor();
@@ -123,10 +109,6 @@ fn set_window_position<R: Runtime>(app: &AppHandle<R>) {
                 let y = 0.0;
 
                 let _ = window.set_position(LogicalPosition::new(x, y));
-                debug!(
-                    "✅ Window positioned at right edge (Logical): ({}, {})",
-                    x, y
-                );
             }
         }
     }
@@ -142,54 +124,46 @@ fn setup_mouse_event_monitoring<R: Runtime>(app: AppHandle<R>) {
     use std::time::Duration;
 
     thread::spawn(move || loop {
-        if let Some((mouse_x, _)) = get_mouse_location() {
-            if let Some(window) = app.get_webview_window("main") {
-                if let Ok(monitors) = window.available_monitors() {
-                    let mut current_screen_right_edge = 0.0;
+        if let Some(screen) = get_active_screen_info() {
+            if let Some((mouse_x, _)) = get_mouse_location() {
+                if let Some(window) = app.get_webview_window("main") {
+                    let right_edge = screen.x + screen.width;
+                    let show_threshold = 2.0;
+                    let hide_threshold = 410.0;
 
-                    for monitor in monitors {
-                        let scale_factor = monitor.scale_factor();
-                        let pos = monitor.position();
-                        let size = monitor.size();
+                    let at_right_edge = mouse_x >= right_edge - show_threshold;
+                    let outside_window = mouse_x < right_edge - hide_threshold;
 
-                        let left = pos.x as f64 / scale_factor;
-                        let width = size.width as f64 / scale_factor;
-                        let right = left + width;
+                    let mut visible = IS_WINDOW_VISIBLE.lock().unwrap();
+                    let mut auto_hide = IS_AUTO_HIDE_ENABLED.lock().unwrap();
 
-                        if mouse_x >= left && mouse_x <= right {
-                            current_screen_right_edge = right;
-                            break;
+                    if at_right_edge && !*visible {
+                        if !window.is_visible().unwrap_or(false) {
+                            // Reposition to the detected screen's right edge
+                            let window_width = 410.0;
+                            let x = right_edge - window_width;
+                            let y = screen.y;
+
+                            let _ = window.set_position(LogicalPosition::new(x, y));
+
+                            *visible = true;
+                            *auto_hide = true;
+                            let _ = window.emit("window-visible", true);
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            debug!(
+                                "✅ Window shown from mouse edge (Auto-hide enabled) at ({}, {})",
+                                x, y
+                            );
                         }
-                    }
-
-                    if current_screen_right_edge > 0.0 {
-                        let show_threshold = 2.0;
-                        let hide_threshold = 410.0;
-
-                        let at_right_edge = mouse_x >= current_screen_right_edge - show_threshold;
-                        let outside_window = mouse_x < current_screen_right_edge - hide_threshold;
-
-                        let mut visible = IS_WINDOW_VISIBLE.lock().unwrap();
-                        let mut auto_hide = IS_AUTO_HIDE_ENABLED.lock().unwrap();
-
-                        if at_right_edge && !*visible {
-                            if !window.is_visible().unwrap_or(false) {
-                                *visible = true;
-                                *auto_hide = true;
-                                let _ = window.emit("window-visible", true);
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                                debug!("✅ Window shown from mouse edge (Auto-hide enabled)");
-                            }
-                        } else if outside_window && *visible && *auto_hide {
-                            if window.is_visible().unwrap_or(false) {
-                                *visible = false;
-                                *auto_hide = false;
-                                let _ = window.emit("window-visible", false);
-                                thread::sleep(Duration::from_millis(150));
-                                let _ = window.hide();
-                                debug!("✅ Window hidden (left mouse edge)");
-                            }
+                    } else if outside_window && *visible && *auto_hide {
+                        if window.is_visible().unwrap_or(false) {
+                            *visible = false;
+                            *auto_hide = false;
+                            let _ = window.emit("window-visible", false);
+                            thread::sleep(Duration::from_millis(150));
+                            let _ = window.hide();
+                            debug!("✅ Window hidden (left mouse edge)");
                         }
                     }
                 }
@@ -197,6 +171,51 @@ fn setup_mouse_event_monitoring<R: Runtime>(app: AppHandle<R>) {
         }
         thread::sleep(Duration::from_millis(100));
     });
+}
+
+#[cfg(target_os = "macos")]
+struct ScreenInfo {
+    x: f64,
+    y: f64,
+    width: f64,
+}
+
+#[cfg(target_os = "macos")]
+fn get_active_screen_info() -> Option<ScreenInfo> {
+    unsafe {
+        let event_class = class!(NSEvent);
+        let mouse_loc: cocoa::foundation::NSPoint = msg_send![event_class, mouseLocation];
+
+        let screen_class = class!(NSScreen);
+        let screens: cocoa::base::id = msg_send![screen_class, screens];
+        let count: usize = msg_send![screens, count];
+
+        if count == 0 {
+            return None;
+        }
+
+        let primary_screen: cocoa::base::id = msg_send![screens, objectAtIndex: 0];
+        let primary_frame: cocoa::foundation::NSRect = msg_send![primary_screen, frame];
+        let primary_height = primary_frame.size.height;
+
+        for i in 0..count {
+            let screen: cocoa::base::id = msg_send![screens, objectAtIndex: i];
+            let frame: cocoa::foundation::NSRect = msg_send![screen, frame];
+
+            if mouse_loc.x >= frame.origin.x
+                && mouse_loc.x <= (frame.origin.x + frame.size.width)
+                && mouse_loc.y >= frame.origin.y
+                && mouse_loc.y <= (frame.origin.y + frame.size.height)
+            {
+                return Some(ScreenInfo {
+                    x: frame.origin.x,
+                    y: primary_height - (frame.origin.y + frame.size.height),
+                    width: frame.size.width,
+                });
+            }
+        }
+    }
+    None
 }
 
 #[cfg(target_os = "macos")]
