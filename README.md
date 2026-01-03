@@ -3,7 +3,7 @@
 **Smart Clipboard Manager with Folder Organization.**  
 Keep your clipboard history organized, editable, and instantly accessible. Built with Rust & Tauri for maximum performance.
 
-<video src="https://github.com/newfull5/PasteSheets/raw/main/docs/demo_video.mov" width="100%" autoplay loop muted playsinline></video>
+<video src="https://github.com/newfull5/PasteSheets/raw/main/docs/demo_video.mp4" width="100%" autoplay loop muted playsinline></video>
 
 
 
