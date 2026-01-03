@@ -1,24 +1,19 @@
 <script>
   import { createEventDispatcher, onMount } from "svelte";
   import Input from "./ui/Input.svelte";
-
   export let title = "PasteSheet";
   export let showBack = false;
   export let searchQuery = "";
   export let placeholder = "Search Anything...";
-
   const dispatch = createEventDispatcher();
   let searchInput;
-
   export function focusSearch() {
     if (searchInput) searchInput.focus();
   }
-
   function handleBack() {
     dispatch("back");
   }
 </script>
-
 <header class="app-header">
   <div class="header-row">
     <div class="header-left">
@@ -47,7 +42,6 @@
     </div>
   </div>
 </header>
-
 <style>
   .app-header {
     position: relative;
@@ -57,28 +51,24 @@
     min-height: 40px;
     flex-shrink: 0;
   }
-
   .header-row {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-
   .header-left {
     display: flex;
     align-items: center;
     flex: 1;
     overflow: hidden;
   }
-
   .header-title-container {
     position: relative;
     flex: 1;
     display: flex;
     align-items: center;
   }
-
   h1 {
     color: var(--color-accent);
     font-size: 22px;
@@ -92,25 +82,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   h1.view-folder {
     font-size: 18px;
     opacity: 0.9;
   }
-
   h1::after {
     content: "|";
     color: var(--color-accent);
     animation: blink 1s step-end infinite;
     margin-left: 2px;
   }
-
   @keyframes blink {
     50% {
       opacity: 0;
     }
   }
-
   :global(.header-search) {
     position: absolute !important;
     top: 0 !important;
@@ -128,16 +114,13 @@
     opacity: 0 !important;
     transition: opacity 0.2s ease !important;
   }
-
   :global(.header-search.active),
   :global(.header-search:focus) {
     opacity: 1 !important;
   }
-
   .view-folder + :global(.header-search) {
     font-size: 18px !important;
   }
-
   .btn-back {
     background: transparent;
     border: none;
@@ -149,17 +132,14 @@
     border-radius: 6px;
     transition: all 0.2s;
   }
-
   .btn-back:hover {
     background: rgba(255, 255, 255, 0.1);
   }
-
   .header-right {
     display: flex;
     align-items: center;
     margin-left: 12px;
   }
-
   .btn-settings {
     background: transparent;
     border: none;
@@ -175,7 +155,6 @@
     justify-content: center;
     line-height: 1;
   }
-
   .btn-settings:hover {
     background: rgba(255, 255, 255, 0.1);
     opacity: 1;

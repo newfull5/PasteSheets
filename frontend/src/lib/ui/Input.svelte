@@ -5,22 +5,17 @@
   export let className = "";
   export let autofocus = false;
   export let spellcheck = false;
-
   let inputRef;
-
   $: if (autofocus && inputRef) {
     inputRef.focus();
   }
-
   export function focus() {
     if (inputRef) inputRef.focus();
   }
-
   export function blur() {
     if (inputRef) inputRef.blur();
   }
 </script>
-
 <input
   bind:this={inputRef}
   {type}

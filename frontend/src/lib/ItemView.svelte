@@ -5,65 +5,49 @@
   import HistoryItem from "./HistoryItem.svelte";
   import Button from "./ui/Button.svelte";
   import Input from "./ui/Input.svelte";
-
   export let historyItems = [];
   export let selectedIndex = 0;
   export let editingId = null;
   export let editContent = "";
   export let editMemo = "";
-
   const dispatch = createEventDispatcher();
-
   let itemRefs = [];
   let buttonFocusIndex = 0;
-
   $: filteredItems = historyItems;
-
   let isCreating = false;
   let newItemMemo = "";
   let newItemContent = "";
-
   let lastSelectedIndex = -1;
   $: if (selectedIndex !== undefined && selectedIndex !== lastSelectedIndex) {
-    // Only reset button focus when moving to a DIFFERENT item
     buttonFocusIndex = 0;
     lastSelectedIndex = selectedIndex;
   }
-
   function handleBack() {
     dispatch("back");
   }
-
   function handleSelect(index) {
-    if (selectedIndex === index) return; // Ignore if already selected
+    if (selectedIndex === index) return; 
     selectedIndex = index;
     dispatch("select", index);
   }
-
   function handlePaste(event) {
     dispatch("paste", event.detail);
   }
-
   function handleEdit(event) {
     dispatch("edit", event.detail);
   }
-
   function handleDelete(event) {
     dispatch("delete", event.detail);
   }
-
   function handleSave() {
     dispatch("save");
   }
-
   function handleCancel() {
     dispatch("cancel");
   }
-
   function handleCreate() {
     isCreating = true;
   }
-
   function handleSaveCreate() {
     const content = newItemContent.trim();
     if (content) {
@@ -71,17 +55,14 @@
     }
     cancelCreate();
   }
-
   function cancelCreate() {
     isCreating = false;
     newItemMemo = "";
     newItemContent = "";
   }
-
   function autofocus(node) {
     node.focus();
   }
-
   function scrollSelected(node, selected) {
     if (selected) {
       node.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -94,7 +75,6 @@
       },
     };
   }
-
   export function executeSelectedAction() {
     if (selectedIndex === filteredItems.length) {
       handleCreate();
@@ -109,10 +89,8 @@
       }
     }
   }
-
   export function handleArrowKey(key) {
     if (editingId !== null || isCreating) return false;
-
     if (key === "ArrowRight") {
       if (buttonFocusIndex < 2) {
         buttonFocusIndex++;
@@ -121,22 +99,21 @@
         }
         return true;
       }
-      return false; // Let parent handle it (though usually nothing to do)
+      return false; 
     } else if (key === "ArrowLeft") {
       if (buttonFocusIndex > 0) {
         buttonFocusIndex--;
         if (itemRefs[selectedIndex]) {
           itemRefs[selectedIndex].focusButton(buttonFocusIndex);
         }
-        return true; // We handled it (moved focus)
+        return true; 
       } else {
-        return false; // We didn't handle it, so parent should go back
+        return false; 
       }
     }
     return false;
   }
 </script>
-
 <div id="view-items" class="view-page">
   <div class="content-list">
     {#each filteredItems as item, i (item.id)}
@@ -163,7 +140,6 @@
         />
       </div>
     {/each}
-
     <div
       role="button"
       tabindex="0"
@@ -230,13 +206,11 @@
         <span>New Item</span>
       {/if}
     </div>
-
     {#if filteredItems.length === 0}
       <div class="empty-state">No items found in this folder</div>
     {/if}
   </div>
 </div>
-
 <style>
   .view-page {
     display: flex;
@@ -244,7 +218,6 @@
     width: 100%;
     height: 100%;
   }
-
   .content-list {
     display: flex;
     flex-direction: column;
@@ -253,20 +226,16 @@
     padding-right: 2px;
     flex: 1;
   }
-
   .content-list::-webkit-scrollbar {
     width: 6px;
   }
-
   .content-list::-webkit-scrollbar-thumb {
     background: rgba(220, 220, 87, 0.2);
     border-radius: 10px;
   }
-
   .content-list::-webkit-scrollbar-thumb:hover {
     background: rgba(220, 220, 87, 0.4);
   }
-
   .empty-state {
     color: var(--color-text-sub);
     text-align: center;

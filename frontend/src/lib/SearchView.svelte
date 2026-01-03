@@ -3,30 +3,23 @@
   import HistoryItem from "./HistoryItem.svelte";
   import { flip } from "svelte/animate";
   import { fly } from "svelte/transition";
-
   export let filteredDirectories = [];
   export let filteredItems = [];
   export let selectedIndex = 0;
-
   let itemRefs = [];
   let buttonFocusIndex = 0;
-
   export let editingId = null;
   export let editContent = "";
   export let editMemo = "";
-
   const dispatch = createEventDispatcher();
-
   function scrollSelected(node, isSelected) {
     if (isSelected) {
       node.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }
-
   $: totalFolders = filteredDirectories.length;
   $: totalItems = filteredItems.length;
   $: totalCount = totalFolders + totalItems;
-
   export function executeSelectedAction() {
     if (selectedIndex < totalFolders) {
       dispatch("openFolder", filteredDirectories[selectedIndex].name);
@@ -41,13 +34,9 @@
       }
     }
   }
-
   export function handleArrowKey(key) {
     if (selectedIndex < totalFolders) return;
-
-    // 3 buttons: paste, edit, delete
     const maxButtonIndex = 2;
-
     if (key === "ArrowRight") {
       if (buttonFocusIndex < maxButtonIndex) {
         buttonFocusIndex++;
@@ -62,14 +51,12 @@
       }
     }
   }
-
   let lastSelectedIndex = -1;
   $: if (selectedIndex !== lastSelectedIndex) {
     buttonFocusIndex = 0;
     lastSelectedIndex = selectedIndex;
   }
 </script>
-
 <div class="search-view">
   <div class="search-content">
     {#if totalFolders > 0}
@@ -94,7 +81,6 @@
         </div>
       </div>
     {/if}
-
     {#if totalItems > 0}
       <div class="search-section">
         <h2 class="search-section-header">Items</h2>
@@ -130,13 +116,11 @@
         </div>
       </div>
     {/if}
-
     {#if totalCount === 0}
       <div class="empty-state">No matches found for your search.</div>
     {/if}
   </div>
 </div>
-
 <style>
   .search-view {
     display: flex;
@@ -144,7 +128,6 @@
     height: 100%;
     overflow: hidden;
   }
-
   .search-content {
     flex: 1;
     overflow-y: auto;
@@ -153,13 +136,11 @@
     gap: 20px;
     padding-right: 4px;
   }
-
   .search-section {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-
   .search-section-header {
     font-size: 11px;
     font-weight: 700;
@@ -170,13 +151,11 @@
     margin-bottom: 4px;
     opacity: 0.7;
   }
-
   .search-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
-
   .search-result-item {
     display: flex;
     align-items: center;
@@ -186,16 +165,13 @@
     transition: all 0.2s;
     background: transparent;
   }
-
   .search-result-item:hover,
   .search-result-item.selected {
     background: rgba(255, 255, 255, 0.05);
   }
-
   .search-result-item.selected {
     background-color: rgba(220, 220, 87, 0.1);
   }
-
   .dir-icon {
     width: 4px;
     height: 16px;
@@ -204,19 +180,16 @@
     border-radius: 2px;
     opacity: 0.4;
   }
-
   .search-result-item.selected .dir-icon {
     background: var(--color-accent);
     opacity: 1;
     box-shadow: 0 0 8px var(--color-accent);
   }
-
   .dir-name {
     flex: 1;
     font-size: 14px;
     color: var(--color-text-main);
   }
-
   .dir-count {
     font-size: 12px;
     color: var(--color-text-sub);
@@ -224,14 +197,12 @@
     padding: 2px 8px;
     border-radius: 10px;
   }
-
   .empty-state {
     color: var(--color-text-sub);
     text-align: center;
     padding: 60px 0;
     font-size: 14px;
   }
-
   .search-item-wrapper {
     margin-bottom: 2px;
   }

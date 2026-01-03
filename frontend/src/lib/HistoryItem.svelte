@@ -2,56 +2,43 @@
   import { createEventDispatcher } from "svelte";
   import Button from "./ui/Button.svelte";
   import Input from "./ui/Input.svelte";
-
   export let item;
   export let isSelected = false;
   export let isEditing = false;
   export let editContent = "";
   export let editMemo = "";
   export let showFolderLabel = false;
-
   const dispatch = createEventDispatcher();
-
   function handleBack() {
     dispatch("back");
   }
-
   let pasteBtn;
   let editBtn;
   let deleteBtn;
-
-  export let activeButtonIndex = -1; // -1: none, 0: Paste, 1: Edit, 2: Delete
-
+  export let activeButtonIndex = -1; 
   export function focusButton(index) {
     if (index === 0 && pasteBtn) pasteBtn.focus();
     if (index === 1 && editBtn) editBtn.focus();
     if (index === 2 && deleteBtn) deleteBtn.focus();
   }
-
   function handleSelect() {
     dispatch("select");
   }
-
   function handlePaste() {
     dispatch("paste", item);
   }
-
   function handleEdit() {
     dispatch("edit", item);
   }
-
   function handleDelete() {
     dispatch("delete", item.id);
   }
-
   function handleSave() {
     dispatch("save", item);
   }
-
   function handleCancel() {
     dispatch("cancel");
   }
-
   function formatDate(dateStr) {
     try {
       const date = new Date(dateStr);
@@ -61,7 +48,6 @@
     }
   }
 </script>
-
 <div
   role="button"
   tabindex="0"
@@ -112,7 +98,6 @@
         {/if}
       </div>
       <div class="item-content">{item.content}</div>
-
       {#if isSelected}
         <div class="item-meta">
           <span>{formatDate(item.created_at)}</span>
@@ -153,7 +138,6 @@
     {/if}
   </div>
 </div>
-
 <style>
   .history-item {
     display: flex;
@@ -168,13 +152,11 @@
     overflow: hidden;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   }
-
   .history-item:hover,
   .history-item.selected {
     background-color: rgba(255, 255, 255, 0.05);
     outline: none;
   }
-
   .history-item.selected {
     background-color: rgba(220, 220, 87, 0.08);
     align-items: stretch;
@@ -182,7 +164,6 @@
     min-height: fit-content;
     overflow: visible;
   }
-
   .history-item::before {
     content: "";
     display: block;
@@ -195,19 +176,16 @@
     transition: all 0.2s;
     flex-shrink: 0;
   }
-
   .history-item.selected::before {
     height: auto;
     align-self: stretch;
     opacity: 1;
     box-shadow: 0 0 8px var(--color-accent);
   }
-
   .history-item:hover::before {
     opacity: 1;
     box-shadow: 0 0 8px var(--color-accent);
   }
-
   .item-body {
     flex: 1;
     display: flex;
@@ -216,18 +194,16 @@
     overflow: hidden;
     width: 100%;
   }
-
   .item-header-row {
     display: flex;
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 4px;
     width: 100%;
-    position: relative; /* For absolute positioning of label if needed, or just use flex */
+    position: relative; 
   }
-
   .item-memo {
-    flex: 1; /* Take up space to push label to the right */
+    flex: 1; 
     font-size: 13px;
     font-weight: 500;
     color: #e2e2b6;
@@ -238,9 +214,8 @@
     white-space: nowrap;
     max-width: 70%;
   }
-
   .folder-label {
-    margin-left: auto; /* Push to the right regardless of memo */
+    margin-left: auto; 
     font-size: 10px;
     color: var(--color-text-sub);
     background: rgba(255, 255, 255, 0.08);
@@ -251,7 +226,6 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-
   .item-content {
     flex: 1;
     font-size: 14px;
@@ -261,7 +235,6 @@
     text-overflow: ellipsis;
     width: 100%;
   }
-
   .history-item.selected .item-content {
     color: var(--color-text-main);
     white-space: pre-wrap;
@@ -276,7 +249,6 @@
     text-overflow: clip;
     overflow-x: visible;
   }
-
   .item-meta {
     display: none;
     color: var(--color-text-sub);
@@ -284,7 +256,6 @@
     font-family: monospace;
     opacity: 0.6;
   }
-
   .history-item.selected .item-meta {
     display: flex;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -294,7 +265,6 @@
     justify-content: space-between;
     align-items: center;
   }
-
   .item-actions {
     display: none;
     gap: 8px;
@@ -304,11 +274,9 @@
     padding-bottom: 4px;
     flex-shrink: 0;
   }
-
   .history-item.selected .item-actions {
     display: flex;
   }
-
   .btn-mini {
     padding: 4px 10px;
     font-size: 11px;
@@ -318,38 +286,31 @@
     color: var(--color-text-sub);
     cursor: pointer;
     transition: all 0.2s;
-    outline: none; /* 브라우저 기본 파란색 테두리 제거 */
+    outline: none; 
   }
-
   .btn-mini:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--color-text-main);
   }
-
   .btn-mini:focus {
-    outline: none; /* focus 시에도 브라우저 기본 outline 제거 */
+    outline: none; 
   }
-
   .btn-mini.primary {
     background: var(--color-accent);
     color: black;
-    border: 1px solid transparent; /* border 크기 유지 */
+    border: 1px solid transparent; 
   }
-
   .btn-mini.danger:hover,
   .btn-mini.danger.primary {
     background: #ff5555 !important;
     color: white !important;
     border-color: #ff5555 !important;
   }
-
-  /* Edit Mode Styles from Original */
   .edit-mode {
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
-
   :global(.memo-area) {
     width: 100% !important;
     background: rgba(220, 220, 87, 0.05) !important;
@@ -363,7 +324,6 @@
     margin-bottom: 8px !important;
     transition: all 0.2s !important;
   }
-
   .edit-area {
     width: 100%;
     min-height: 120px;
@@ -380,13 +340,11 @@
     margin-bottom: 8px;
     transition: all 0.2s;
   }
-
   .edit-area:focus {
     border-color: var(--color-accent);
     background: rgba(220, 220, 87, 0.08);
     box-shadow: 0 0 0 2px rgba(220, 220, 87, 0.1);
   }
-
   .inline-actions {
     display: flex;
     gap: 8px;

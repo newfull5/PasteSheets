@@ -2,13 +2,10 @@
   import { createEventDispatcher, onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import Toggle from "./ui/Toggle.svelte";
-
   const dispatch = createEventDispatcher();
-
   let settings = {
     mouse_edge_enabled: true,
   };
-
   onMount(async () => {
     try {
       const val = await invoke("get_setting", { key: "mouse_edge_enabled" });
@@ -19,7 +16,6 @@
       console.error("Failed to load settings:", err);
     }
   });
-
   async function updateSetting(key, value) {
     try {
       await invoke("update_setting", { key, value: String(value) });
@@ -28,12 +24,10 @@
       console.error(`Failed to update setting ${key}:`, err);
     }
   }
-
   function handleBack() {
     dispatch("back");
   }
 </script>
-
 <div class="settings-view">
   <div class="settings-group">
     <h3 class="group-title">General</h3>
@@ -44,7 +38,6 @@
       on:change={(e) => updateSetting("mouse_edge_enabled", e.detail)}
     />
   </div>
-
   <div class="settings-group">
     <h3 class="group-title">Information</h3>
     <div class="info-item">
@@ -57,7 +50,6 @@
     </div>
   </div>
 </div>
-
 <style>
   .settings-view {
     display: flex;
@@ -67,13 +59,11 @@
     height: 100%;
     overflow-y: auto;
   }
-
   .settings-group {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-
   .group-title {
     color: var(--color-text-sub);
     font-size: 13px;
@@ -83,7 +73,6 @@
     margin-bottom: 4px;
     padding-left: 4px;
   }
-
   .info-item {
     display: flex;
     justify-content: space-between;
@@ -91,12 +80,10 @@
     background: rgba(255, 255, 255, 0.03);
     border-radius: 12px;
   }
-
   .info-label {
     color: var(--color-text-sub);
     font-size: 14px;
   }
-
   .info-value {
     color: var(--color-text-main);
     font-size: 14px;

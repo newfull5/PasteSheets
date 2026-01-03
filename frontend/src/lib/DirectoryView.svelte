@@ -4,44 +4,34 @@
   import { fly } from "svelte/transition";
   import Input from "./ui/Input.svelte";
   import ContextMenu from "./ui/ContextMenu.svelte";
-
   export let directories = [];
   export let selectedIndex = 0;
-
   let isCreating = false;
   let newFolderName = "";
   let inlineInput;
-
   const dispatch = createEventDispatcher();
   let contextMenu = { show: false, x: 0, y: 0, targetDir: null };
-
   function scrollSelected(node, isSelected) {
     if (isSelected) {
       node.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }
-
   function handleSelect(index) {
     selectedIndex = index;
     dispatch("select", selectedIndex);
   }
-
   function handleOpen(dirName) {
     dispatch("open", dirName);
   }
-
   function handleRename(dirName) {
     dispatch("rename", dirName);
   }
-
   function handleDelete(dirName) {
     dispatch("delete", dirName);
   }
-
   export function handleCreate() {
     isCreating = true;
   }
-
   function handleSaveCreate() {
     const name = newFolderName.trim();
     if (name) {
@@ -49,16 +39,13 @@
     }
     cancelCreate();
   }
-
   function cancelCreate() {
     isCreating = false;
     newFolderName = "";
   }
-
   function autofocus(node) {
     node.focus();
   }
-
   function handleContextMenu(e, dir) {
     e.preventDefault();
     contextMenu = {
@@ -68,7 +55,6 @@
       targetDir: dir,
     };
   }
-
   function handleContextSelect(e) {
     const action = e.detail;
     if (contextMenu.targetDir) {
@@ -77,7 +63,6 @@
     }
   }
 </script>
-
 <div id="view-directories" class="view-page">
   <div class="content-list">
     {#each directories as dir, i (dir.name)}
@@ -97,7 +82,6 @@
         </div>
       </div>
     {/each}
-
     <div
       role="button"
       tabindex="0"
@@ -127,7 +111,6 @@
         <span>New Folder</span>
       {/if}
     </div>
-
     {#if contextMenu.show}
       <ContextMenu
         x={contextMenu.x}
@@ -142,7 +125,6 @@
     {/if}
   </div>
 </div>
-
 <style>
   .view-page {
     display: flex;
@@ -150,7 +132,6 @@
     width: 100%;
     height: 100%;
   }
-
   .content-list {
     display: flex;
     flex-direction: column;
@@ -159,7 +140,6 @@
     padding-right: 2px;
     flex: 1;
   }
-
   .dir-item {
     display: flex;
     align-items: center;
@@ -173,17 +153,14 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     outline: none;
   }
-
   .dir-item:hover,
   .dir-item.selected {
     background-color: rgba(255, 255, 255, 0.05);
     outline: none;
   }
-
   .dir-item.selected {
     background-color: rgba(220, 220, 87, 0.1);
   }
-
   .dir-item::before {
     content: "";
     display: block;
@@ -196,14 +173,12 @@
     transition: all 0.2s;
     flex-shrink: 0;
   }
-
   .dir-item:hover::before,
   .dir-item.selected::before {
     background-color: var(--color-accent);
     opacity: 1;
     box-shadow: 0 0 8px var(--color-accent);
   }
-
   .dir-body {
     flex: 1;
     display: flex;
@@ -211,7 +186,6 @@
     justify-content: space-between;
     overflow: hidden;
   }
-
   .dir-name {
     flex: 1;
     font-size: 15px;
@@ -220,7 +194,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
   .dir-count {
     font-size: 12px;
     color: var(--color-text-sub);
