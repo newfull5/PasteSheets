@@ -53,7 +53,7 @@
     </div>
     <div class="info-item">
       <span class="info-label">Developer</span>
-      <span class="info-value">Antigravity</span>
+      <span class="info-value">newfull5</span>
     </div>
   </div>
 </div>
