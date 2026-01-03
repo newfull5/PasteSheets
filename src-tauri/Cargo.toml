@@ -3,9 +3,9 @@
 name = "app"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+authors = ["newfull5"]
+license = "Apache-2.0"
+repository = "https://github.com/newfull5/PasteSheets"
 edition = "2021"
 rust-version = "1.77.2"
 
