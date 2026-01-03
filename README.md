@@ -41,6 +41,17 @@ brew install --cask pastesheet
 
 **Pro Tip:** Move your mouse cursor to the **right edge** of the screen to quickly peek at your clipboard!
 
+## 🛠 Troubleshooting
+
+### ⚠️ macOS "Damaged" Error
+Since this app is not signed with an Apple Developer certificate, macOS may show a "damaged" error or block the app from opening. To fix this, run the following command in your terminal:
+
+```bash
+xattr -cr /Applications/PasteSheet.app
+```
+
+Then, try opening the app again from your Applications folder.
+
 ## License
 
 This project is licensed under the Apache License, Version 2.0.
