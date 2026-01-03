@@ -1,6 +1,6 @@
 # PasteSheet
 
-**Smart Clipboard Manager for quick pasting.**  
+**PasteSheet: A smart clipboard manager designed to make pasting easier**  
 Keep your clipboard history organized, editable, and instantly accessible. Built with Rust & Tauri for maximum performance.
 
 > ⚠️ **Beta Notice:** This project is currently in **Beta**. If you experience any issues or inconveniences, please report them in the [Issues](https://github.com/newfull5/PasteSheets/issues) section.
