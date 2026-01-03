@@ -5,13 +5,6 @@ Keep your clipboard history organized, editable, and instantly accessible. Built
 
 <video src="https://github.com/user-attachments/assets/89d47103-148d-4ad7-9dca-60e520867989" width="100%" autoplay loop muted playsinline></video>
 
-
-
-https://github.com/user-attachments/assets/89d47103-148d-4ad7-9dca-60e520867989
-
-
-
-
 ## Installation
 
 ```bash
