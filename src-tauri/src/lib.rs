@@ -70,6 +70,22 @@ fn delete_history_item(id: i64) -> Result<(), String> {
     db::delete_history_item(id).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_setting(key: String) -> Result<Option<String>, String> {
+    db::get_setting(&key).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_setting(key: String, value: String) -> Result<(), String> {
+    db::set_setting(&key, &value).map_err(|e| e.to_string())?;
+
+    if key == "mouse_edge_enabled" {
+        window_manager::update_mouse_edge_enabled(value == "true");
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -101,6 +117,12 @@ pub fn run() {
 
             let _conn = db::init_db().expect("Failed to initialize database");
             info!("Database initialized");
+
+            // Load initial settings
+            if let Ok(Some(val)) = db::get_setting("mouse_edge_enabled") {
+                window_manager::update_mouse_edge_enabled(val == "true");
+            }
+
             let db_path = db::get_path();
             debug!("Database path: {:?}", db_path);
 
@@ -216,7 +238,9 @@ pub fn run() {
             toggle_main_window,
             update_history_item,
             delete_history_item,
-            create_history_item
+            create_history_item,
+            get_setting,
+            update_setting
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

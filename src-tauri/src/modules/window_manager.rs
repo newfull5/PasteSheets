@@ -8,6 +8,7 @@ use objc::{class, msg_send, sel, sel_impl};
 
 static IS_WINDOW_VISIBLE: Mutex<bool> = Mutex::new(false);
 static IS_AUTO_HIDE_ENABLED: Mutex<bool> = Mutex::new(false);
+static MOUSE_EDGE_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
 pub fn set_window_state(is_visible: bool) {
     if let Ok(mut visible) = IS_WINDOW_VISIBLE.lock() {
@@ -143,12 +144,22 @@ pub fn stop_mouse_edge_monitor() {
     debug!("🛑 Mouse detection stopped");
 }
 
+pub fn update_mouse_edge_enabled(enabled: bool) {
+    MOUSE_EDGE_ENABLED.store(enabled, std::sync::atomic::Ordering::Relaxed);
+    debug!("🖱 Mouse edge detection enabled: {}", enabled);
+}
+
 #[cfg(target_os = "macos")]
 fn setup_mouse_event_monitoring<R: Runtime>(app: AppHandle<R>) {
     use std::thread;
     use std::time::Duration;
 
     thread::spawn(move || loop {
+        if !MOUSE_EDGE_ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
+            thread::sleep(Duration::from_millis(500));
+            continue;
+        }
+
         if let Some(screen) = get_active_screen_info() {
             if let Some((mouse_x, _)) = get_mouse_location() {
                 if let Some(window) = app.get_webview_window("main") {

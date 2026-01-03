@@ -9,6 +9,7 @@
   import Header from "./lib/Header.svelte";
   import Modal from "./lib/Modal.svelte";
   import DetailModal from "./lib/DetailModal.svelte";
+  import SettingsView from "./lib/SettingsView.svelte";
 
   // --- 상태 관리 ---
   let isVisible = false;
@@ -203,6 +204,11 @@
     }
   }
 
+  function showSettingsView() {
+    currentView = "settings";
+    searchQuery = "";
+  }
+
   // --- 액션 핸들러 ---
   async function useItem(item) {
     if (!item) return;
@@ -346,6 +352,10 @@
         editingId = null;
         return;
       }
+      if (currentView === "settings") {
+        showDirectoryView();
+        return;
+      }
       // 검색창에 포커스가 있거나 검색어가 있으면 먼저 처리
       if (isSearchInput || searchQuery) {
         searchQuery = "";
@@ -466,6 +476,9 @@
             event.preventDefault();
             showDirectoryView();
             if (isSearchInput) event.target.blur();
+          } else if (currentView === "settings") {
+            event.preventDefault();
+            showDirectoryView();
           }
         }
         return;
@@ -549,19 +562,16 @@
       bind:this={header}
       title={searchQuery
         ? "Search results"
-        : currentView === "directories"
-          ? "PasteSheet"
-          : currentDirId}
-      showBack={currentView === "items" && !searchQuery}
+        : currentView === "settings"
+          ? "Settings"
+          : currentView === "directories"
+            ? "PasteSheet"
+            : currentDirId}
+      showBack={(currentView === "items" || currentView === "settings") &&
+        !searchQuery}
       bind:searchQuery
       on:back={showDirectoryView}
-      on:settings={() =>
-        openModal({
-          title: "Settings",
-          message:
-            "Settings view is coming soon! For now, you can adjust the window width in tauri.conf.json.",
-          confirmText: "OK",
-        })}
+      on:settings={showSettingsView}
     />
 
     <div class="flex-1 overflow-hidden relative">
@@ -599,7 +609,7 @@
             on:create={createFolder}
           />
         </div>
-      {:else}
+      {:else if currentView === "items"}
         <div class="absolute inset-0">
           <ItemView
             bind:this={itemView}
@@ -617,6 +627,10 @@
             on:create={createItem}
             on:view={(e) => handleView(e.detail)}
           />
+        </div>
+      {:else if currentView === "settings"}
+        <div class="absolute inset-0" transition:fly={{ y: 10, duration: 150 }}>
+          <SettingsView on:back={showDirectoryView} />
         </div>
       {/if}
     </div>

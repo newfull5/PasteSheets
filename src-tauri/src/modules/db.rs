@@ -101,6 +101,20 @@ pub fn init_db() -> Result<Connection> {
         [],
     )?;
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )",
+        [],
+    )?;
+
+    // Default settings
+    conn.execute(
+        "INSERT OR IGNORE INTO settings (key, value) VALUES ('mouse_edge_enabled', 'true')",
+        [],
+    )?;
+
     Ok(conn)
 }
 
@@ -230,5 +244,26 @@ pub fn find_by_content(content: &str, directory: &str) -> Result<Option<PasteIte
 pub fn delete_history_item(id: i64) -> Result<()> {
     let conn = Connection::open(get_path())?;
     conn.execute("DELETE FROM paste_sheets WHERE id = ?1", [id])?;
+    Ok(())
+}
+
+pub fn get_setting(key: &str) -> Result<Option<String>> {
+    let conn = Connection::open(get_path())?;
+    let mut stmt = conn.prepare("SELECT value FROM settings WHERE key = ?1")?;
+    let result = stmt.query_row([key], |row| row.get(0));
+
+    match result {
+        Ok(val) => Ok(Some(val)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn set_setting(key: &str, value: &str) -> Result<()> {
+    let conn = Connection::open(get_path())?;
+    conn.execute(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+        [key, value],
+    )?;
     Ok(())
 }
