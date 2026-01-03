@@ -3,31 +3,17 @@
 **Smart Clipboard Manager with Folder Organization.**  
 Keep your clipboard history organized, editable, and instantly accessible. Built with Rust & Tauri for maximum performance.
 
-> ⚠️ **Beta Notice:** This project is currently in **Beta**. If you experience any issues or inconveniences, please report them in the [Issues](https://github.com/newfull5/PasteSheets/issues) section.
+> ⚠️ **Beta Notice:** This project is currently in **Beta**. If you experience any issues or inconveniences, please report them in the [Issues](https://github.com/saechan/PasteSheets/issues) section.
 
-<video src="https://github.com/newfull5/PasteSheets/raw/main/docs/demo_video.mp4" width="100%" autoplay loop muted playsinline></video>
+<video src="https://github.com/user-attachments/assets/89d47103-148d-4ad7-9dca-60e520867989" width="100%" autoplay loop muted playsinline></video>
 
 >  currently supports **macOS**. (Windows version is under developing!)
 
 ## Installation
 
-### Method 1: Homebrew (Recommended)
-You can install PasteSheet via Homebrew by tapping the official repository:
-
 ```bash
-# 1. Tap the repository
-brew tap newfull5/tap
-
-# 2. Install the app
-brew install --cask pastesheet
+brew install pastesheet
 ```
-
-### Method 2: Direct Download
-1. Download the latest `.dmg` file:
-   [**Download PasteSheet v0.1.0-beta (macOS ARM64)**](https://github.com/newfull5/PasteSheets/releases/download/v0.1.0-beta/PasteSheet_0.1.0_aarch64.dmg)
-2. Open the `.dmg` file and drag **PasteSheet** to your **Applications** folder.
-
-*(Note: If you are using an Intel-based Mac, please check the [Releases](https://github.com/newfull5/PasteSheets/releases) page for the appropriate version.)*
 
 ## Usage
 
