@@ -76,8 +76,27 @@ public sealed class AppViewModel : INotifyPropertyChanged
     public bool HasModal => _modal is not null;
 
     private PasteItem? _detailItem;
-    public PasteItem? DetailItem { get => _detailItem; set { _detailItem = value; OnChanged(); OnChanged(nameof(HasDetail)); } }
+    public PasteItem? DetailItem { get => _detailItem; set { _detailItem = value; OnChanged(); OnChanged(nameof(HasDetail)); OnChanged(nameof(DetailMeta)); } }
     public bool HasDetail => _detailItem is not null;
+
+    /// Detail modal meta footer, e.g. "2026-06-22 14:30 · 128 chars".
+    public string DetailMeta
+    {
+        get
+        {
+            if (_detailItem is not { } item) return "";
+            var when = item.CreatedAt;
+            if (DateTime.TryParseExact(item.CreatedAt, "yyyy-MM-dd HH:mm:ss",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                    out var utc))
+                when = utc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            else if (DateTime.TryParse(item.CreatedAt, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                when = dt.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            return $"{when} · {item.Content.Length} chars";
+        }
+    }
 
     private long? _editingItemId;
     public long? EditingItemId { get => _editingItemId; private set { _editingItemId = value; OnChanged(); OnChanged(nameof(IsEditing)); } }
@@ -140,6 +159,39 @@ public sealed class AppViewModel : INotifyPropertyChanged
     public bool ShowBack =>
         (CurrentView is ViewType.Items or ViewType.Settings) && string.IsNullOrEmpty(SearchQuery);
 
+    // MARK: - Search summary / footers (visual chrome)
+
+    public bool IsSearching => !string.IsNullOrEmpty(SearchQuery);
+
+    /// Count line shown above search results, e.g. "3 results for "foo"".
+    public string ResultSummary
+    {
+        get
+        {
+            if (!IsSearching) return "";
+            int n = FilteredDirectories.Count + FilteredItems.Count;
+            return $"{n} result{(n == 1 ? "" : "s")} for \"{SearchQuery}\"";
+        }
+    }
+
+    /// True when a search returned nothing — drives the "No matches" empty state.
+    public bool HasNoResults => IsSearching && FilteredDirectories.Count == 0 && FilteredItems.Count == 0;
+
+    /// Root footer: "N folders · M items".
+    public string FolderFooter
+    {
+        get
+        {
+            if (CurrentView != ViewType.Directories || IsSearching) return "";
+            int folders = _directories.Count;
+            int items = _allItems.Count;
+            return $"{folders} folder{(folders == 1 ? "" : "s")} · {items} item{(items == 1 ? "" : "s")}";
+        }
+    }
+
+    /// Bottom hint footer for the item list.
+    public bool ShowItemHint => CurrentView == ViewType.Items && !IsSearching;
+
     private void RebuildRows()
     {
         Rows.Clear();
@@ -166,6 +218,11 @@ public sealed class AppViewModel : INotifyPropertyChanged
         }
         OnChanged(nameof(HeaderTitle));
         OnChanged(nameof(ShowBack));
+        OnChanged(nameof(IsSearching));
+        OnChanged(nameof(ResultSummary));
+        OnChanged(nameof(HasNoResults));
+        OnChanged(nameof(FolderFooter));
+        OnChanged(nameof(ShowItemHint));
         SyncSelection();
     }
 
@@ -176,6 +233,13 @@ public sealed class AppViewModel : INotifyPropertyChanged
         if (_selectedIndex >= Rows.Count) _selectedIndex = Rows.Count - 1;
         OnChanged(nameof(SelectedIndex));
     }
+
+    /// Last row index that points at real content (excludes the trailing
+    /// "New folder/item" row). Keeps selection on content after a delete.
+    private int LastContentIndex =>
+        string.IsNullOrEmpty(SearchQuery)
+            ? Math.Max(0, Rows.Count - 2)   // last row is the "New …" affordance
+            : Math.Max(0, Rows.Count - 1);  // search results have no New row
 
     // MARK: - View Navigation
 
@@ -275,6 +339,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
     public void SaveEdit()
     {
         if (EditingItemId is not long id) return;
+        if (string.IsNullOrWhiteSpace(EditContent)) return; // keep the form open on empty content
         try
         {
             _manageItems.UpdateItem(id, EditContent, CurrentDirectory, string.IsNullOrEmpty(EditMemo) ? null : EditMemo);
@@ -302,18 +367,26 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     public void DeleteItem(long id)
     {
+        var target = _allItems.FirstOrDefault(i => i.Id == id);
+        var preview = target?.Content ?? "";
+        int nl = preview.IndexOfAny(new[] { '\r', '\n' });
+        if (nl >= 0) preview = preview[..nl];
+        if (preview.Length > 200) preview = preview[..200];
+
         Modal = new ModalState
         {
-            Title = "Delete Item",
-            Message = "Are you sure you want to delete this item?",
+            Title = "Delete item",
+            Message = "This item will be permanently deleted.",
             ConfirmText = "Delete",
             IsDanger = true,
+            Preview = preview,
             OnConfirm = _ =>
             {
                 try
                 {
                     _manageItems.DeleteItem(id);
                     LoadHistory(); LoadDirectories(); RebuildRows();
+                    if (SelectedIndex > LastContentIndex) SelectedIndex = LastContentIndex;
                 }
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Delete item: {ex}"); }
             }
@@ -350,13 +423,17 @@ public sealed class AppViewModel : INotifyPropertyChanged
     {
         Modal = new ModalState
         {
-            Title = "Delete Folder",
-            Message = $"Are you sure you want to delete folder \"{name}\"? All items inside will be lost.",
+            Title = "Delete folder",
+            Message = $"Folder \"{name}\" and all items inside will be permanently deleted.",
             ConfirmText = "Delete",
             IsDanger = true,
             OnConfirm = _ =>
             {
-                try { _manageDirectories.DeleteDirectory(name); LoadDirectories(); RebuildRows(); }
+                try
+                {
+                    _manageDirectories.DeleteDirectory(name); LoadDirectories(); RebuildRows();
+                    if (SelectedIndex > LastContentIndex) SelectedIndex = LastContentIndex;
+                }
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Delete dir: {ex}"); }
             }
         };
@@ -587,7 +664,13 @@ public sealed class AppViewModel : INotifyPropertyChanged
         if (!_autoHideEnabled || Host is null || !Host.IsVisible) return;
         ClearAutoHideTimer();
         _autoHideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(_autoHideTimeout) };
-        _autoHideTimer.Tick += (_, _) => ToggleWindow();
+        _autoHideTimer.Tick += (_, _) =>
+        {
+            // Don't auto-hide mid-action: a modal, the detail overlay, inline edit,
+            // or a create form is open. Mirrors macOS resetAutoHideTimer guard.
+            if (HasModal || HasDetail || IsEditing || IsCreatingNew) return;
+            ToggleWindow();
+        };
         _autoHideTimer.Start();
     }
 
@@ -644,6 +727,12 @@ public sealed class AppViewModel : INotifyPropertyChanged
         // While editing or creating with a focused text box, let it own all other
         // keys (caret movement, typing) instead of hijacking them for list nav.
         if (isInput && (EditingItemId is not null || IsCreatingNew)) return false;
+        // Ctrl+N: new item (in a folder) or new folder (at root). Mirrors macOS Cmd+N.
+        if (key == Key.N && hasCmd && !isInput && string.IsNullOrEmpty(SearchQuery))
+        {
+            if (CurrentView == ViewType.Items) { StartNewItem(); return true; }
+            if (CurrentView == ViewType.Directories) { StartNewFolder(); return true; }
+        }
         // Ctrl+E starts edit
         if (key == Key.E && hasCmd && CurrentView == ViewType.Items)
         {
