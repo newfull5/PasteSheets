@@ -22,6 +22,8 @@
         <p:ActionButtonBrushConverter x:Key="BtnFg" Background="False" />
         <p:TimeoutSegmentConverter x:Key="SegBg" Background="True" />
         <p:TimeoutSegmentConverter x:Key="SegFg" Background="False" />
+        <p:TimeoutSegmentConverter x:Key="SegWt" Weight="True" />
+        <p:SearchItemsHeaderConverter x:Key="ItemsHeader" />
         <p:ConfirmButtonBrushConverter x:Key="ConfirmBg" Background="True" />
         <p:ConfirmButtonBrushConverter x:Key="ConfirmFg" Background="False" />
 
@@ -317,6 +319,27 @@
                                TextTrimming="CharacterEllipsis"
                                Visibility="{Binding IsSearching, Converter={StaticResource BoolVis}}" />
 
+                    <!-- Section header "ITEMS (N)" above the search results (PS-7). Hidden
+                         when not searching or when no items matched. -->
+                    <TextBlock DockPanel.Dock="Top" Margin="14,6,14,2"
+                               FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextTertiary}">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource ItemsHeader}">
+                                <Binding Path="Rows" />
+                                <Binding Path="ResultSummary" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
                     <!-- Bottom footers: hint (item list) / folder count (root) -->
                     <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Ctrl+&#x232B; delete"
                                Margin="14,8,14,8" FontSize="11" Foreground="{StaticResource TextTertiary}"
@@ -348,12 +371,39 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border CornerRadius="12" Padding="0">
+                                <!-- Own SolidColorBrush instance (transparent Surface) so the
+                                     selection tint can fade via ColorAnimation (PS-10). -->
+                                <Border.Background>
+                                    <SolidColorBrush Color="#00232320" />
+                                </Border.Background>
                                 <Border.Style>
                                     <Style TargetType="Border">
-                                        <Setter Property="Background" Value="Transparent" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource Surface}" />
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                                                                            To="#232320" Duration="0:0:0.12">
+                                                                <ColorAnimation.EasingFunction>
+                                                                    <CubicEase EasingMode="EaseInOut" />
+                                                                </ColorAnimation.EasingFunction>
+                                                            </ColorAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                                                                            To="#00232320" Duration="0:0:0.12">
+                                                                <ColorAnimation.EasingFunction>
+                                                                    <CubicEase EasingMode="EaseInOut" />
+                                                                </ColorAnimation.EasingFunction>
+                                                            </ColorAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -369,12 +419,37 @@
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="0,0,10,0"
                                                 VerticalAlignment="Stretch">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#1AFFFFFF" />
+                                            </Border.Background>
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="{StaticResource NeutralBorder}" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                            <Setter Property="Background" Value="{StaticResource Accent}" />
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                                                                                        To="#C7CA46" Duration="0:0:0.12">
+                                                                            <ColorAnimation.EasingFunction>
+                                                                                <CubicEase EasingMode="EaseInOut" />
+                                                                            </ColorAnimation.EasingFunction>
+                                                                        </ColorAnimation>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                                                                                        To="#1AFFFFFF" Duration="0:0:0.12">
+                                                                            <ColorAnimation.EasingFunction>
+                                                                                <CubicEase EasingMode="EaseInOut" />
+                                                                            </ColorAnimation.EasingFunction>
+                                                                        </ColorAnimation>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -466,16 +541,41 @@
 
                                         <!-- Accent bar -->
                                         <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="0,0,12,0">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#1AFFFFFF" />
+                                            </Border.Background>
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="{StaticResource NeutralBorder}" />
                                                     <Setter Property="Height" Value="16" />
                                                     <Setter Property="VerticalAlignment" Value="Top" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                            <Setter Property="Background" Value="{StaticResource Accent}" />
                                                             <Setter Property="Height" Value="Auto" />
                                                             <Setter Property="VerticalAlignment" Value="Stretch" />
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                                                                                        To="#C7CA46" Duration="0:0:0.12">
+                                                                            <ColorAnimation.EasingFunction>
+                                                                                <CubicEase EasingMode="EaseInOut" />
+                                                                            </ColorAnimation.EasingFunction>
+                                                                        </ColorAnimation>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                                                                                        To="#1AFFFFFF" Duration="0:0:0.12">
+                                                                            <ColorAnimation.EasingFunction>
+                                                                                <CubicEase EasingMode="EaseInOut" />
+                                                                            </ColorAnimation.EasingFunction>
+                                                                        </ColorAnimation>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -490,8 +590,11 @@
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="{Binding Memo}" FontSize="13" FontWeight="Medium"
-                                                           Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis"
+                                                <TextBlock Grid.Column="0" FontSize="13" FontWeight="Medium"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           p:Highlight.Query="{Binding DataContext.SearchQuery, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                           p:Highlight.SourceText="{Binding Memo}"
+                                                           p:Highlight.BaseForeground="{StaticResource TextPrimary}"
                                                            Visibility="{Binding HasMemo, Converter={StaticResource BoolVis}}" />
                                                 <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="4"
                                                         Padding="7,2" VerticalAlignment="Center"
@@ -506,20 +609,24 @@
                                                 </Border>
                                             </Grid>
 
-                                            <!-- Content -->
-                                            <TextBlock Text="{Binding ContentOneLine}" FontSize="14" Margin="0,2,0,0">
+                                            <!-- Content. Rendered via the Highlight attached property so search
+                                                 matches get a gold chip (PS-6); Text/Foreground are driven through
+                                                 Highlight.SourceText/BaseForeground so the selection swap still works. -->
+                                            <TextBlock FontSize="14" Margin="0,2,0,0"
+                                                       p:Highlight.Query="{Binding DataContext.SearchQuery, RelativeSource={RelativeSource AncestorType=Window}}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+                                                        <Setter Property="p:Highlight.SourceText" Value="{Binding ContentOneLine}" />
+                                                        <Setter Property="p:Highlight.BaseForeground" Value="{StaticResource TextSecondary}" />
                                                         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
                                                         <Setter Property="TextWrapping" Value="NoWrap" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                                                                <Setter Property="p:Highlight.BaseForeground" Value="{StaticResource TextPrimary}" />
                                                                 <Setter Property="TextTrimming" Value="None" />
                                                                 <Setter Property="TextWrapping" Value="Wrap" />
                                                                 <Setter Property="MaxHeight" Value="300" />
-                                                                <Setter Property="Text" Value="{Binding ContentPreview}" />
+                                                                <Setter Property="p:Highlight.SourceText" Value="{Binding ContentPreview}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -703,19 +810,24 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="3s" Tag="3" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=3}"
-                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=3}" />
+                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=3}"
+                                                    FontWeight="{Binding AutoHideTimeout, Converter={StaticResource SegWt}, ConverterParameter=3}" />
                                             <Button Content="5s" Tag="5" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=5}"
-                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=5}" />
+                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=5}"
+                                                    FontWeight="{Binding AutoHideTimeout, Converter={StaticResource SegWt}, ConverterParameter=5}" />
                                             <Button Content="10s" Tag="10" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=10}"
-                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=10}" />
+                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=10}"
+                                                    FontWeight="{Binding AutoHideTimeout, Converter={StaticResource SegWt}, ConverterParameter=10}" />
                                             <Button Content="30s" Tag="30" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=30}"
-                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=30}" />
+                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=30}"
+                                                    FontWeight="{Binding AutoHideTimeout, Converter={StaticResource SegWt}, ConverterParameter=30}" />
                                             <Button Content="60s" Tag="60" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=60}"
-                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=60}" />
+                                                    Foreground="{Binding AutoHideTimeout, Converter={StaticResource SegFg}, ConverterParameter=60}"
+                                                    FontWeight="{Binding AutoHideTimeout, Converter={StaticResource SegWt}, ConverterParameter=60}" />
                                         </StackPanel>
                                     </Border>
                                 </Grid>

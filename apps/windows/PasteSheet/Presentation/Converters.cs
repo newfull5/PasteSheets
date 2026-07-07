@@ -124,6 +124,9 @@ public sealed class ConfirmButtonBrushConverter : IValueConverter
 public sealed class TimeoutSegmentConverter : IValueConverter
 {
     public bool Background { get; set; }
+    /// When true, returns a FontWeight (SemiBold selected / Medium otherwise)
+    /// instead of a brush — so the selected chip reads as emphasized (macOS parity).
+    public bool Weight { get; set; }
 
     private static readonly Brush Selected = FrozenA(0x2E, 0xC7, 0xCA, 0x46);     // matchChip (gold @18%)
     private static readonly Brush TextPrimary = FrozenA(0xFF, 0xED, 0xED, 0xE8);
@@ -142,11 +145,33 @@ public sealed class TimeoutSegmentConverter : IValueConverter
         int selected = value is int i ? i : -1;
         int self = int.TryParse(parameter as string, out var p) ? p : -2;
         bool active = selected == self;
+        if (Weight) return active ? FontWeights.SemiBold : FontWeights.Medium;
         if (Background) return active ? Selected : Transparent;
         return active ? TextPrimary : TextSecondary;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// Builds the "ITEMS (N)" section header shown above search results.
+/// Bound to [Rows, ResultSummary]: ResultSummary changes on every RebuildRows
+/// (empty when not searching) and drives re-evaluation; Rows is enumerated to
+/// count item rows. Returns "" (→ collapsed) when not searching or 0 items,
+/// mirroring the macOS "Items (N)" header that only shows when items exist.
+public sealed class SearchItemsHeaderConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        var summary = values.Length > 1 ? values[1] as string : null;
+        if (string.IsNullOrEmpty(summary)) return "";                 // not searching
+        if (values[0] is not System.Collections.IEnumerable rows) return "";
+        int n = 0;
+        foreach (var r in rows) if (r is RowItem { IsItem: true }) n++;
+        return n > 0 ? $"ITEMS ({n})" : "";
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 }
 
