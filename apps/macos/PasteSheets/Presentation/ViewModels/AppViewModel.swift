@@ -26,7 +26,7 @@ final class AppViewModel: ObservableObject {
     @Published var searchQuery = "" {
         didSet {
             guard searchQuery != oldValue else { return }
-            debounceSearch()
+            updateSearchResult()
         }
     }
     @Published var selectedIndex = 0
@@ -56,7 +56,6 @@ final class AppViewModel: ObservableObject {
         let items: [PasteItem]
     }
     @Published private var searchResult: SearchResult?
-    private var searchTask: Task<Void, Never>?
 
     // MARK: - Auto-hide
     private var autoHideEnabled = false
@@ -132,22 +131,13 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    private func debounceSearch() {
-        searchTask?.cancel()
+    private func updateSearchResult() {
         guard !searchQuery.isEmpty else {
             searchResult = nil
             return
         }
-        let query = searchQuery
-        let items = allItems
-        let dirs = directories
-        let useCase = searchUseCase
-        searchTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            guard !Task.isCancelled, let self else { return }
-            let result = useCase.search(query: query, allItems: items, allDirectories: dirs)
-            self.searchResult = SearchResult(directories: result.directories, items: result.items)
-        }
+        let result = searchUseCase.search(query: searchQuery, allItems: allItems, allDirectories: directories)
+        searchResult = SearchResult(directories: result.directories, items: result.items)
     }
 
     // MARK: - View Navigation

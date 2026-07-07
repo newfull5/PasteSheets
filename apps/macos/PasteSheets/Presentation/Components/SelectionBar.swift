@@ -9,5 +9,6 @@ struct SelectionBar: View {
                 ? Color(nsColor: Constants.accentPrimary)
                 : Color(nsColor: Constants.neutralBorder))
             .frame(width: 3)
+            .animation(.easeInOut(duration: 0.12), value: isSelected)
     }
 }
