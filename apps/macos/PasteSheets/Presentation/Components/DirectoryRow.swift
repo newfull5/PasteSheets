@@ -33,6 +33,7 @@ struct DirectoryRow: View {
         .background(
             RoundedRectangle(cornerRadius: Constants.radiusControl)
                 .fill(isSelected ? Color(nsColor: Constants.surface) : Color.clear)
+                .animation(.easeInOut(duration: 0.12), value: isSelected)
         )
         .contentShape(Rectangle())
         .onTapGesture { onOpen() }

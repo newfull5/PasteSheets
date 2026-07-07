@@ -57,6 +57,7 @@ struct HistoryItemRow: View {
         .background(
             RoundedRectangle(cornerRadius: Constants.radiusCard)
                 .fill(isSelected ? Color(nsColor: Constants.surface) : Color.clear)
+                .animation(.easeInOut(duration: 0.12), value: isSelected)
         )
     }
 
