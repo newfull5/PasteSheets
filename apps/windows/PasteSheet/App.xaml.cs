@@ -20,7 +20,11 @@ public partial class AppEntry : Application
 
     // Single-instance guard. A second launch signals the running instance to
     // surface its panel, then exits — so the exe never opens twice.
-    private const string SingleInstanceId = "PasteSheet.SingleInstance.6f1c2a9e";
+    // The mutex and the activation event need distinct kernel-object names:
+    // the namespace is shared across types, so reusing one name for both
+    // throws WaitHandleCannotBeOpenedException.
+    private const string SingleInstanceMutexId = "PasteSheet.SingleInstance.6f1c2a9e";
+    private const string ActivationEventId = "PasteSheet.SingleInstance.6f1c2a9e.Activate";
     private Mutex? _singleInstanceMutex;
     private EventWaitHandle? _activationEvent;
 
@@ -36,10 +40,10 @@ public partial class AppEntry : Application
         base.OnStartup(e);
 
         // If another instance is already running, signal it to show and bail out.
-        _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceId, out bool createdNew);
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexId, out bool createdNew);
         if (!createdNew)
         {
-            try { EventWaitHandle.OpenExisting(SingleInstanceId).Set(); }
+            try { EventWaitHandle.OpenExisting(ActivationEventId).Set(); }
             catch { /* the other instance may be shutting down; nothing to do */ }
             Shutdown();
             return;
@@ -84,7 +88,7 @@ public partial class AppEntry : Application
     // the panel on the UI thread when it happens.
     private void SetupActivationListener()
     {
-        _activationEvent = new EventWaitHandle(false, EventResetMode.AutoReset, SingleInstanceId);
+        _activationEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ActivationEventId);
         ThreadPool.RegisterWaitForSingleObject(
             _activationEvent,
             (_, _) => Dispatcher.Invoke(() =>
