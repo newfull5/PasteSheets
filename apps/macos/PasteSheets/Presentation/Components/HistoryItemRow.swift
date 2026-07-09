@@ -87,7 +87,8 @@ struct HistoryItemRow: View {
             }
         }
 
-        highlightedText(snippetForSearch(item.content),
+        // PS-15: only the display layer is truncated. Paste/edit still use full content.
+        highlightedText(snippetForSearch(String(item.content.prefix(1500))),
                         baseColor: Color(nsColor: isSelected ? Constants.textPrimary : Constants.textSecondary))
             .font(.system(size: 14))
             .lineLimit(isSelected ? 15 : 1)

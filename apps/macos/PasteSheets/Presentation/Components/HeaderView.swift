@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 struct HeaderView: View {
     @ObservedObject var vm: AppViewModel
@@ -49,21 +48,6 @@ struct HeaderView: View {
                         .font(.system(size: 15))
                         .foregroundColor(Color(nsColor: Constants.textPrimary))
                         .focused($isSearchFocused)
-                        .onChange(of: isSearchFocused) { focused in
-                            // AppKit selects the whole field on programmatic focus.
-                            // The auto-focus path pre-fills searchQuery with the first
-                            // typed character, so that character lands selected and the
-                            // next keystroke replaces it. Collapse the selection to the
-                            // end once focus settles so typing appends instead.
-                            // ponytail: one-runloop async; a keystroke landing in the
-                            // sub-ms gap before it runs is still replaced (never observed).
-                            guard focused else { return }
-                            DispatchQueue.main.async {
-                                if let editor = vm.panel?.firstResponder as? NSTextView {
-                                    editor.selectedRange = NSRange(location: (editor.string as NSString).length, length: 0)
-                                }
-                            }
-                        }
                         .onChange(of: vm.searchQuery) { _ in
                             vm.selectedIndex = 0
                         }
