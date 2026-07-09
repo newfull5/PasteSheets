@@ -27,8 +27,13 @@ final class ClipboardMonitorUseCase {
         guard clipboardService.hasChanged(since: lastChangeCount) else { return }
         lastChangeCount = clipboardService.currentChangeCount()
 
-        guard let text = clipboardService.getText(),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let rawText = clipboardService.getText(),
+              !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        // PS-15: cap oversized clipboard payloads so a huge copy doesn't bloat the DB.
+        let text = rawText.count > Constants.maxClipboardTextLength
+            ? String(rawText.prefix(Constants.maxClipboardTextLength))
+            : rawText
 
         do {
             if let existing = try itemRepo.findByContent(text, directory: Constants.defaultDirectory) {

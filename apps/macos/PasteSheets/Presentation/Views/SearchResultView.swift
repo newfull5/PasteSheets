@@ -9,7 +9,7 @@ struct SearchResultView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
+                LazyVStack(alignment: .leading, spacing: 4) {
                     if !(dirs.isEmpty && items.isEmpty) {
                         (Text("\(dirs.count + items.count) results")
                             .font(.system(size: 13, weight: .semibold))

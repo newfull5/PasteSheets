@@ -48,6 +48,7 @@ enum Constants {
     static let pasteKeyDelay: TimeInterval = 0.04
     static let mouseEdgeAutoHideDelay: TimeInterval = 0.15
     static let maxItemsPerDirectory: Int64 = 30
+    static let maxClipboardTextLength = 1_000_000
     static let defaultDirectory = "Clipboard"
     static let defaultShortcut = "CommandOrControl+Shift+V"
     static let defaultAutoHideTimeout = 5

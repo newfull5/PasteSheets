@@ -74,6 +74,10 @@ final class AppViewModel: ObservableObject {
     let updateService: UpdateService
 
     weak var panel: NSPanel?
+    // PS-13: set when the auto-focus path pre-fills the first typed character.
+    // Collapsed synchronously on the next keyDown once focus reaches the field,
+    // so a fast second keystroke can't land on AppKit's select-all and replace it.
+    private var pendingSelectionCollapse = false
 
     init(manageItems: ManageItemsUseCase,
          manageDirectories: ManageDirectoriesUseCase,
@@ -445,6 +449,14 @@ final class AppViewModel: ObservableObject {
     func handleKeyDown(event: NSEvent) -> Bool {
         resetAutoHideTimer()
 
+        // PS-13: collapse the pre-filled first character's selection before this
+        // keystroke is delivered to the field. Only once focus has actually reached
+        // the text view; until then keep the flag so the auto-focus path re-handles.
+        if pendingSelectionCollapse, let editor = panel?.firstResponder as? NSTextView {
+            editor.selectedRange = NSRange(location: (editor.string as NSString).length, length: 0)
+            pendingSelectionCollapse = false
+        }
+
         let fr = panel?.firstResponder
         let isInput = fr is NSTextView || fr is NSTextField
         let hasCmd = event.modifierFlags.contains(.command)
@@ -583,6 +595,7 @@ final class AppViewModel: ObservableObject {
                 // very first keystroke after (re)opening registers without being lost.
                 searchQuery += chars
                 shouldFocusSearch = true
+                pendingSelectionCollapse = true
                 return true
             }
         }
