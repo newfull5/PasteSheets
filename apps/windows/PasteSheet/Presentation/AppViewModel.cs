@@ -68,7 +68,22 @@ public sealed class AppViewModel : INotifyPropertyChanged
     }
 
     private int _selectedIndex;
-    public int SelectedIndex { get => _selectedIndex; set { _selectedIndex = value; OnChanged(); SyncSelection(); } }
+    public int SelectedIndex
+    {
+        get => _selectedIndex;
+        set
+        {
+            _selectedIndex = value;
+            // PS-38: while RebuildRows swaps the collection, the ListBox binding
+            // (and the CollectionViewSource currency sync) pushes transient
+            // values (-1 on Clear, 0 on re-add) through here. Swallow them —
+            // RebuildRows restores the real selection and re-raises at the end —
+            // so the view never sees a selection change that mac wouldn't fire.
+            if (_isRebuildingRows) return;
+            OnChanged();
+            SyncSelection();
+        }
+    }
 
     public string CurrentDirectory { get; private set; } = "";
 
@@ -227,8 +242,27 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     private void RebuildRows()
     {
+        // PS-38: Rows.Clear() makes the ListBox push a transient -1 through the
+        // TwoWay SelectedIndex binding (overwriting _selectedIndex before the
+        // rows are re-added), and SyncSelection would then clamp it to 0 —
+        // silently resetting the selection on every rebuild (edit/save/create/
+        // clipboard refresh) and, with selection-tracking scroll, jumping the
+        // viewport to the top. mac leaves selectedIndex untouched on these
+        // rebuilds (no onChange, no scroll), so snapshot the selection before
+        // clearing and restore it once the rows are back; SyncSelection clamps
+        // it into range when the rebuild shrank the list, which keeps the
+        // post-delete clamp working. Restoring the same value never scrolls:
+        // the view ignores re-notifications that don't change the value.
+        int savedIndex = _selectedIndex;
+        _isRebuildingRows = true;
         Rows.Clear();
-        if (CurrentView == ViewType.Settings) { OnChanged(nameof(HeaderTitle)); OnChanged(nameof(ShowBack)); OnChanged(nameof(IsSearchBarVisible)); return; }
+        if (CurrentView == ViewType.Settings)
+        {
+            _isRebuildingRows = false;
+            _selectedIndex = savedIndex;
+            OnChanged(nameof(HeaderTitle)); OnChanged(nameof(ShowBack)); OnChanged(nameof(IsSearchBarVisible));
+            return;
+        }
 
         if (!string.IsNullOrEmpty(SearchQuery))
         {
@@ -254,6 +288,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
                 Rows.Add(new RowItem { Kind = RowKind.Item, Item = it, Vm = this, IsEditing = EditingItemId == it.Id });
             Rows.Add(new RowItem { Kind = RowKind.NewItem });
         }
+        _isRebuildingRows = false;
+        _selectedIndex = savedIndex; // undo the binding's transient pushes (see above)
         OnChanged(nameof(HeaderTitle));
         OnChanged(nameof(ShowBack));
         OnChanged(nameof(IsSearching));
@@ -265,6 +301,9 @@ public sealed class AppViewModel : INotifyPropertyChanged
         OnChanged(nameof(ShowItemHint));
         SyncSelection();
     }
+
+    /// True while RebuildRows is swapping the Rows collection; see SelectedIndex.
+    private bool _isRebuildingRows;
 
     private void SyncSelection()
     {

@@ -581,6 +581,7 @@
                          VirtualizingPanel.IsVirtualizing="True"
                          VirtualizingPanel.VirtualizationMode="Recycling"
                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                         VirtualizingPanel.ScrollUnit="Pixel"
                          ItemsSource="{Binding Source={StaticResource GroupedRows}}"
                          SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}"
                          MouseDoubleClick="OnListDoubleClick">
