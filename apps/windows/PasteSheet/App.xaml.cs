@@ -154,10 +154,9 @@ public partial class AppEntry : Application
     {
         _vm.ClipboardMonitor.StartMonitoring(() => _vm.OnClipboardUpdated());
 
-        var widthPhysical = Constants.WindowWidth * _window.DpiScale;
         _mouseEdgeService.StartMonitoring(
-            widthPhysical,
-            () => _vm.Host?.IsVisible ?? false,
+            Constants.WindowWidth,
+            () => _vm.IsWindowVisibleForEdge,
             () => { _window.SaveForegroundBeforeShow(); _vm.ShowWindowFromEdge(); },
             () => _vm.HideWindowFromEdge());
     }

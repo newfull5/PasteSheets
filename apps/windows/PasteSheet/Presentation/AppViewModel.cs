@@ -120,6 +120,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
     private bool _autoHideEnabled;
     private int _autoHideTimeout = Constants.DefaultAutoHideTimeout;
     private DispatcherTimer? _autoHideTimer;
+    // Pending mouse-edge hide (mac mouseEdgeAutoHideDelay grace).
+    private DispatcherTimer? _edgeHideTimer;
 
     // MARK: - Computed
 
@@ -636,10 +638,16 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     // MARK: - Window
 
+    /// Visibility as the edge monitor and toggle see it. Mirrors macOS
+    /// vm.isWindowVisible: during the edge-hide grace the panel is still on
+    /// screen but already counts as hidden, so reaching the edge (or the
+    /// hotkey) re-shows it instead of being ignored.
+    public bool IsWindowVisibleForEdge => (Host?.IsVisible ?? false) && _edgeHideTimer is null;
+
     public void ToggleWindow()
     {
         if (Host is null) return;
-        if (Host.IsVisible)
+        if (IsWindowVisibleForEdge)
         {
             IsAutoHideMode = false;
             ClearAutoHideTimer();
@@ -647,6 +655,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         }
         else
         {
+            ClearEdgeHideTimer();
             Host.ShowPanel();
             OnWindowBecameVisible();
         }
@@ -654,7 +663,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     public void ShowWindowFromEdge()
     {
-        if (Host is null || Host.IsVisible) return;
+        if (Host is null || IsWindowVisibleForEdge) return;
+        ClearEdgeHideTimer();
         IsAutoHideMode = true;
         Host.ShowPanel();
         OnWindowBecameVisible();
@@ -668,10 +678,25 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     public void HideWindowFromEdge()
     {
-        if (Host is null || !Host.IsVisible || !IsAutoHideMode) return;
+        if (Host is null || !IsWindowVisibleForEdge || !IsAutoHideMode) return;
         IsAutoHideMode = false;
         ClearAutoHideTimer();
-        Host.HidePanel();
+        // mac parity: the panel disappears 0.15s after the cursor leaves, and
+        // without animation (mac hideWindowFromEdge delays orderOut). Reaching
+        // the edge or reopening within the grace cancels the pending hide.
+        _edgeHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Constants.MouseEdgeAutoHideDelayMs) };
+        _edgeHideTimer.Tick += (_, _) =>
+        {
+            ClearEdgeHideTimer();
+            Host.HidePanelImmediate();
+        };
+        _edgeHideTimer.Start();
+    }
+
+    private void ClearEdgeHideTimer()
+    {
+        _edgeHideTimer?.Stop();
+        _edgeHideTimer = null;
     }
 
     public void SaveForegroundBeforeShow(IntPtr ownHandle) =>

@@ -5,6 +5,8 @@ public static class Constants
     public const double ClipboardPollingIntervalMs = 100;
     public const double MouseEdgePollingIntervalMs = 100;
     public const double MouseEdgeThreshold = 2.0;
+    // Grace before the edge-hide actually removes the panel (mac mouseEdgeAutoHideDelay 0.15s).
+    public const double MouseEdgeAutoHideDelayMs = 150;
     public const double WindowWidth = 380.0;
     public const double WindowMinHeight = 300.0;
     public const double WindowMaxHeight = 1400.0;
