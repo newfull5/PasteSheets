@@ -43,6 +43,10 @@ public sealed class ClipboardMonitorUseCase
         var text = _clipboardService.GetText();
         if (string.IsNullOrWhiteSpace(text)) return;
 
+        // PS-21: cap oversized clipboard payloads so a huge copy doesn't bloat the DB.
+        if (text.Length > Constants.MaxClipboardTextLength)
+            text = text[..Constants.MaxClipboardTextLength];
+
         try
         {
             var existing = _itemRepo.FindByContent(text, Constants.DefaultDirectory);

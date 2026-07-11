@@ -35,15 +35,17 @@ public sealed class StringEmptyToVisibilityConverter : IValueConverter
 }
 
 /// Styles inline action buttons (Paste/Edit/Delete) based on the keyboard
-/// focus index. Parameter is "0", "1", "2:danger" etc. — index, optionally
-/// flagged as a danger (Delete) button. Returns either the foreground or the
-/// background brush depending on the Background flag.
+/// focus index. Parameter is "0:gold", "1", "2:danger" etc. — index, optionally
+/// flagged as a gold-primary (Paste) or danger (Delete) button. Returns the
+/// foreground, background or border brush depending on the Background/Border flags.
 public sealed class ActionButtonBrushConverter : IValueConverter
 {
     public bool Background { get; set; }
+    public bool Border { get; set; }
 
     // Calm gold palette (macOS 0.6.0 parity).
     private static readonly Brush Accent = Frozen(0xC7, 0xCA, 0x46);       // accentPrimary
+    private static readonly Brush FocusBorder = Frozen(0xB9, 0xBC, 0x44);  // focusBorder
     private static readonly Brush Danger = Frozen(0xE2, 0x4B, 0x4A);       // danger (filled)
     private static readonly Brush DangerText = Frozen(0xD8, 0x5A, 0x30);   // quiet trash glyph
     private static readonly Brush TextPrimary = Frozen(0xED, 0xED, 0xE8);
@@ -70,18 +72,27 @@ public sealed class ActionButtonBrushConverter : IValueConverter
         var parts = (parameter as string ?? "").Split(':');
         int index = int.TryParse(parts[0], out var idx) ? idx : -1;
         bool danger = parts.Length > 1 && parts[1] == "danger";
+        bool gold = parts.Length > 1 && parts[1] == "gold";
         bool active = focus == index;
 
+        if (Border)
+        {
+            // Gold-primary (Paste): borderless when idle, focusBorder ring when keyboard-focused.
+            return active ? FocusBorder : Transparent;
+        }
         if (Background)
         {
             // Trash (danger) button: no fill when idle, red fill when focused.
             if (danger) return active ? Danger : Transparent;
-            // Paste/Edit: gold fill only when keyboard-focused, else neutral outline (transparent).
+            // Gold-primary (Paste): always gold fill (macOS goldPrimary parity).
+            if (gold) return Accent;
+            // Edit: gold fill only when keyboard-focused, else neutral outline (transparent).
             if (active) return Accent;
             return Transparent;
         }
         // Foreground
         if (danger) return active ? TextPrimary : DangerText;
+        if (gold) return PanelBg;
         if (active) return PanelBg;
         return TextSecondary;
     }
@@ -128,7 +139,7 @@ public sealed class TimeoutSegmentConverter : IValueConverter
     /// instead of a brush — so the selected chip reads as emphasized (macOS parity).
     public bool Weight { get; set; }
 
-    private static readonly Brush Selected = FrozenA(0x2E, 0xC7, 0xCA, 0x46);     // matchChip (gold @18%)
+    private static readonly Brush Selected = FrozenA(0x29, 0xC7, 0xCA, 0x46);     // segment fill (gold @16%, macOS parity; distinct from MatchChip)
     private static readonly Brush TextPrimary = FrozenA(0xFF, 0xED, 0xED, 0xE8);
     private static readonly Brush TextSecondary = FrozenA(0xFF, 0x9A, 0x9A, 0x92);
     private static readonly Brush Transparent = FrozenA(0x00, 0x00, 0x00, 0x00);

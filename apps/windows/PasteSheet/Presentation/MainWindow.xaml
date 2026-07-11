@@ -20,6 +20,7 @@
         <p:StringEmptyToVisibilityConverter x:Key="NotEmptyVis" Invert="True" />
         <p:ActionButtonBrushConverter x:Key="BtnBg" Background="True" />
         <p:ActionButtonBrushConverter x:Key="BtnFg" Background="False" />
+        <p:ActionButtonBrushConverter x:Key="BtnBorder" Border="True" />
         <p:TimeoutSegmentConverter x:Key="SegBg" Background="True" />
         <p:TimeoutSegmentConverter x:Key="SegFg" Background="False" />
         <p:TimeoutSegmentConverter x:Key="SegWt" Weight="True" />
@@ -86,7 +87,7 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4" Padding="10,4">
+                                CornerRadius="8" Padding="14,5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
@@ -175,6 +176,38 @@
             <Setter Property="Margin" Value="0,0,0,12" />
         </Style>
 
+        <!-- Modal/detail card entrance: scale 0.95→1 + opacity 0→1, 0.2s easeInOut (macOS parity) -->
+        <Style x:Key="ModalCardAnim" TargetType="Border">
+            <Style.Triggers>
+                <Trigger Property="IsVisible" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                 From="0" To="1" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                 From="0.95" To="1" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                 From="0.95" To="1" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Settings segmented timeout button -->
         <Style x:Key="SegButton" TargetType="Button">
             <Setter Property="Cursor" Value="Hand" />
@@ -183,7 +216,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="7" Padding="10,4">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="10,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
@@ -382,7 +415,7 @@
     </Window.Resources>
 
     <!-- Outer rounded window -->
-    <Border Background="{StaticResource Bg}" CornerRadius="16"
+    <Border Background="{StaticResource Bg}" CornerRadius="12"
             BorderBrush="#1AFFFFFF" BorderThickness="1">
         <Grid>
             <Grid Margin="0">
@@ -453,6 +486,11 @@
                             Visibility="{Binding CurrentView, Converter={StaticResource NotSettingsVis}, ConverterParameter=Settings}" />
                 </Grid>
 
+                <!-- 1px divider between header and content (PS-58), matching mac
+                     ContentView's Divider().opacity(0.1). -->
+                <Border Grid.Row="0" Height="1" VerticalAlignment="Bottom"
+                        Background="{StaticResource White10}" />
+
                 <!-- List + search summary / footers -->
                 <DockPanel Grid.Row="1"
                            Visibility="{Binding CurrentView, Converter={StaticResource NotSettingsVis}, ConverterParameter=Settings}">
@@ -485,7 +523,7 @@
                     </TextBlock>
 
                     <!-- Bottom footers: hint (item list) / folder count (root) -->
-                    <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Ctrl+&#x232B; delete"
+                    <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Del delete"
                                Margin="14,8,14,8" FontSize="11" Foreground="{StaticResource TextTertiary}"
                                HorizontalAlignment="Center"
                                Visibility="{Binding ShowItemHint, Converter={StaticResource BoolVis}}" />
@@ -502,6 +540,10 @@
                                    Foreground="{StaticResource TextTertiary}" HorizontalAlignment="Center" />
                         <TextBlock Text="No matches" FontSize="15" Foreground="{StaticResource TextSecondary}"
                                    HorizontalAlignment="Center" Margin="0,8,0,0" />
+                        <!-- PS-62: mac SearchResultView subtitle -->
+                        <TextBlock FontSize="13" Foreground="{StaticResource TextTertiary}"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"
+                                   Text="{Binding SearchQuery, StringFormat='Nothing found for \&quot;{0}\&quot;'}" />
                     </StackPanel>
 
                 <ListBox x:Name="List" Margin="6,0"
@@ -555,8 +597,18 @@
 
                                 <Grid>
                                     <!-- ============ Directory row ============ -->
-                                    <Grid Margin="12" Visibility="{Binding IsDirectory, Converter={StaticResource BoolVis}}">
+                                    <Grid Margin="12" Background="Transparent"
+                                          Visibility="{Binding IsDirectory, Converter={StaticResource BoolVis}}"
+                                          ContextMenuOpening="OnDirectoryContextMenuOpening">
+                                        <Grid.ContextMenu>
+                                            <!-- PS-28/PS-39: folder Rename/Delete (mac DirectoryListView context menu) -->
+                                            <ContextMenu>
+                                                <MenuItem Header="Rename" Click="OnDirRename" />
+                                                <MenuItem Header="Delete" Click="OnDirDelete" />
+                                            </ContextMenu>
+                                        </Grid.ContextMenu>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -599,10 +651,25 @@
                                                 </Style>
                                             </Border.Style>
                                         </Border>
-                                        <TextBlock Grid.Column="1" Text="{Binding DirectoryName}" FontSize="15"
+                                        <!-- PS-24: folder glyph, mirroring mac DirectoryRow's Image(systemName: "folder") -->
+                                        <TextBlock Grid.Column="1" Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   FontSize="14" Width="20" Margin="0,0,10,0" TextAlignment="Center"
+                                                   VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource TextTertiary}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Grid.Column="2" Text="{Binding DirectoryName}" FontSize="15"
                                                    Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="2" Text="{Binding CountText}" FontSize="12" FontWeight="Medium"
+                                        <TextBlock Grid.Column="3" Text="{Binding CountText}" FontSize="12" FontWeight="Medium"
                                                    Foreground="{StaticResource TextTertiary}" VerticalAlignment="Center" />
                                     </Grid>
 
@@ -638,8 +705,10 @@
                                             <!-- Item: content field first, then memo -->
                                             <StackPanel Visibility="{Binding IsNewItem, Converter={StaticResource BoolVis}}">
                                                 <TextBlock Text="CONTENT" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="2,0,0,4" />
+                                                <!-- 0.5 hairline border to match mac (PS-59). -->
                                                 <Border Background="{StaticResource Surface}" CornerRadius="8" Padding="8"
-                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1">
+                                                        UseLayoutRounding="False" SnapsToDevicePixels="False"
+                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="0.5">
                                                     <Grid>
                                                         <TextBox x:Name="NewItemContentBox" Background="Transparent" BorderThickness="0"
                                                                  Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}" FontSize="14" MinHeight="80"
@@ -653,8 +722,10 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="MEMO · optional" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="2,8,0,4" />
+                                                <!-- 0.5 hairline border to match mac (PS-59). -->
                                                 <Border Background="{StaticResource Surface}" CornerRadius="8" Padding="8"
-                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1">
+                                                        UseLayoutRounding="False" SnapsToDevicePixels="False"
+                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="0.5">
                                                     <Grid>
                                                         <TextBox x:Name="NewItemMemoBox" Background="Transparent" BorderThickness="0"
                                                                  Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}" FontSize="13" FontWeight="Medium"
@@ -677,25 +748,22 @@
                                     </Grid>
 
                                     <!-- ============ Item row ============ -->
-                                    <Grid Margin="14,12" Visibility="{Binding IsItem, Converter={StaticResource BoolVis}}">
+                                    <Grid Margin="14,11" Visibility="{Binding IsItem, Converter={StaticResource BoolVis}}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Accent bar -->
-                                        <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="0,0,12,0">
+                                        <!-- Accent bar (PS-48: always full height like mac SelectionBar) -->
+                                        <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="0,0,12,0"
+                                                VerticalAlignment="Stretch">
                                             <Border.Background>
                                                 <SolidColorBrush Color="#1AFFFFFF" />
                                             </Border.Background>
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Height" Value="16" />
-                                                    <Setter Property="VerticalAlignment" Value="Top" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                            <Setter Property="Height" Value="Auto" />
-                                                            <Setter Property="VerticalAlignment" Value="Stretch" />
                                                             <DataTrigger.EnterActions>
                                                                 <BeginStoryboard>
                                                                     <Storyboard>
@@ -740,9 +808,11 @@
                                                            p:Highlight.SourceText="{Binding Memo}"
                                                            p:Highlight.BaseForeground="{StaticResource TextPrimary}"
                                                            Visibility="{Binding HasMemo, Converter={StaticResource BoolVis}}" />
+                                                <!-- 0.5 hairline border to match mac (PS-59). -->
                                                 <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="4"
                                                         Padding="7,2" VerticalAlignment="Center"
-                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1"
+                                                        UseLayoutRounding="False" SnapsToDevicePixels="False"
+                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="0.5"
                                                         Visibility="{Binding ShowFolderLabel, Converter={StaticResource BoolVis}}">
                                                     <StackPanel Orientation="Horizontal">
                                                         <Ellipse Width="5" Height="5" Fill="{StaticResource TextSecondary}"
@@ -788,10 +858,13 @@
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
+                                                    <!-- Gold-primary Paste: always gold fill + dark text (macOS parity);
+                                                         keyboard focus shows as a focusBorder ring instead of a fill change. -->
                                                     <Button Grid.Column="0" Content="Paste" Style="{StaticResource ActionButton}" Margin="0,0,8,0"
                                                             Click="OnRowPaste"
-                                                            Background="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBg}, ConverterParameter=0}"
-                                                            Foreground="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnFg}, ConverterParameter=0}" />
+                                                            Background="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBg}, ConverterParameter=0:gold}"
+                                                            Foreground="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnFg}, ConverterParameter=0:gold}"
+                                                            BorderBrush="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBorder}, ConverterParameter=0:gold}" />
                                                     <Button Grid.Column="1" Content="Edit" Style="{StaticResource ActionButton}"
                                                             Click="OnRowEdit"
                                                             Background="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBg}, ConverterParameter=1}"
@@ -838,8 +911,10 @@
                                             </ContentControl.Style>
                                         </ContentControl>
 
-                                        <!-- Thin divider below unselected item rows (W-05). -->
-                                        <Border Grid.Column="0" Grid.ColumnSpan="2" Height="1" Margin="8,11,8,-13"
+                                        <!-- Thin divider below unselected item rows (W-05).
+                                             0.5 hairline to match mac; needs rounding opt-outs to render sub-pixel (PS-59). -->
+                                        <Border Grid.Column="0" Grid.ColumnSpan="2" Height="0.5" Margin="8,11,8,-13"
+                                                UseLayoutRounding="False" SnapsToDevicePixels="False"
                                                 VerticalAlignment="Bottom" Background="{StaticResource Divider}"
                                                 Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource BoolVisInvert}}" />
                                     </Grid>
@@ -950,7 +1025,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="Hide after" FontSize="14"
                                                Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Background="#0DFFFFFF" CornerRadius="10" Padding="3">
+                                    <Border Grid.Column="1" Background="#0FFFFFFF" CornerRadius="10" Padding="3">
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="3s" Tag="3" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=3}"
@@ -1041,11 +1116,27 @@
             </Grid>
 
             <!-- Detail overlay -->
-            <Border Background="#8C000000" CornerRadius="16"
+            <Border Background="#8C000000" CornerRadius="12"
                     Visibility="{Binding HasDetail, Converter={StaticResource BoolVis}}"
                     MouseDown="OnDetailBackdrop">
-                <Border Background="{StaticResource Surface}" CornerRadius="12" Margin="19,40"
-                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1" ClipToBounds="True">
+                <!-- macOS parity: modal is 90% of panel width x 80% of panel height, centered -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.05*" />
+                        <ColumnDefinition Width="0.9*" />
+                        <ColumnDefinition Width="0.05*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="0.1*" />
+                        <RowDefinition Height="0.8*" />
+                        <RowDefinition Height="0.1*" />
+                    </Grid.RowDefinitions>
+                <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="12"
+                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1" ClipToBounds="True"
+                        Style="{StaticResource ModalCardAnim}" RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -1091,15 +1182,20 @@
                         </StackPanel>
                     </Grid>
                 </Border>
+                </Grid>
             </Border>
 
             <!-- Modal overlay -->
-            <Border Background="#8C000000" CornerRadius="16"
+            <Border Background="#8C000000" CornerRadius="12"
                     Visibility="{Binding HasModal, Converter={StaticResource BoolVis}}"
                     MouseDown="OnModalBackdrop">
                 <Border Background="{StaticResource PanelBg}" CornerRadius="12" Padding="20" MaxWidth="320"
                         Margin="20" VerticalAlignment="Center" HorizontalAlignment="Center"
-                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1">
+                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1"
+                        Style="{StaticResource ModalCardAnim}" RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
                     <Border.Effect>
                         <DropShadowEffect Color="#000000" Opacity="0.45" BlurRadius="24" ShadowDepth="12" Direction="270" />
                     </Border.Effect>
@@ -1116,8 +1212,8 @@
                         <!-- Delete target preview block -->
                         <Border CornerRadius="8" Padding="12,10" Margin="0,12,0,0"
                                 Background="{StaticResource Surface}" BorderBrush="{StaticResource Divider}" BorderThickness="1"
-                                Visibility="{Binding Modal.Preview, Converter={StaticResource NotEmptyVis}}">
-                            <TextBlock Text="{Binding Modal.Preview}" Foreground="{StaticResource TextSecondary}"
+                                Visibility="{Binding Modal.HasPreview, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="{Binding Modal.PreviewText}" Foreground="{StaticResource TextSecondary}"
                                        FontFamily="Consolas" FontSize="13" TextTrimming="CharacterEllipsis"
                                        TextWrapping="Wrap" MaxHeight="36" />
                         </Border>
@@ -1133,7 +1229,7 @@
                                     Background="{StaticResource Surface}" Foreground="{StaticResource TextPrimary}"
                                     BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1"
                                     FontSize="14" Cursor="Hand" />
-                            <Button x:Name="ModalConfirm" Content="{Binding Modal.ConfirmText}" Padding="16,8"
+                            <Button x:Name="ModalConfirm" Content="{Binding Modal.ConfirmButtonText}" Padding="16,8"
                                     Click="OnModalConfirm" FontSize="14" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"
                                     Background="{Binding Modal.IsDanger, Converter={StaticResource ConfirmBg}}"
                                     Foreground="{Binding Modal.IsDanger, Converter={StaticResource ConfirmFg}}" />

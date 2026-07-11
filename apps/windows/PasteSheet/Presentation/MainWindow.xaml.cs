@@ -67,11 +67,11 @@ public partial class MainWindow : Window, IWindowHost
         BeginAnimation(OpacityProperty,
             new DoubleAnimation(0, 1, SlideDuration));
 
-        Dispatcher.BeginInvoke(() =>
-        {
-            SearchBox.Focus();
-            SearchBox.SelectAll();
-        }, DispatcherPriority.Input);
+        // PS-20: no SelectAll here — SearchQuery is reset to "" on every show
+        // (OnWindowBecameVisible), and a delayed SelectAll would select a first
+        // character typed before this invoke runs, letting the next keystroke
+        // replace it (macOS PS-13 analogue).
+        Dispatcher.BeginInvoke(() => SearchBox.Focus(), DispatcherPriority.Input);
     }
 
     public void HidePanel()
@@ -207,6 +207,23 @@ public partial class MainWindow : Window, IWindowHost
     private void OnRowDelete(object sender, RoutedEventArgs e)
     {
         if (RowItemFrom(sender) is { Item: { } item }) _vm.DeleteItem(item.Id);
+    }
+
+    private void OnDirectoryContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // The reserved default folder can't be renamed or deleted (mac parity).
+        if (RowItemFrom(sender) is not { Directory: { } dir } || dir.Name == Constants.DefaultDirectory)
+            e.Handled = true;
+    }
+
+    private void OnDirRename(object sender, RoutedEventArgs e)
+    {
+        if (RowItemFrom(sender) is { Directory: { } dir }) _vm.RenameDirectory(dir.Name);
+    }
+
+    private void OnDirDelete(object sender, RoutedEventArgs e)
+    {
+        if (RowItemFrom(sender) is { Directory: { } dir }) _vm.DeleteDirectory(dir.Name);
     }
 
     private void OnInlineSave(object sender, RoutedEventArgs e) => _vm.SaveEdit();

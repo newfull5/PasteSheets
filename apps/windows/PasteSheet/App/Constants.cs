@@ -14,6 +14,7 @@ public static class Constants
     // Tiny settle after the target regains foreground, before sending Ctrl+V.
     public const int PasteSettleDelayMs = 15;
     public const long MaxItemsPerDirectory = 30;
+    public const int MaxClipboardTextLength = 1_000_000;
     public const string DefaultDirectory = "Clipboard";
     public const string DefaultShortcut = "Control+Shift+V";
     public const int DefaultAutoHideTimeout = 5;
