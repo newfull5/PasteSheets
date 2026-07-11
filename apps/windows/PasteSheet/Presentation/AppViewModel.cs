@@ -744,9 +744,11 @@ public sealed class AppViewModel : INotifyPropertyChanged
         // PS-51: except Up/Down while editing — mac moves the list selection even
         // mid-edit and keeps the edit form open (AppViewModel.swift arrow cases
         // don't check isInput or editingItemId), so let those fall through.
+        // PS-37: same exception during creation — mac cancels the create form and
+        // moves the list selection instead (AppViewModel.swift handleKeyDown).
         if (isInput && (EditingItemId is not null || IsCreatingNew))
         {
-            if (EditingItemId is null || (key != Key.Up && key != Key.Down)) return false;
+            if (key is not (Key.Up or Key.Down)) return false;
         }
         // Ctrl+N: new item (in a folder) or new folder (at root). Mirrors macOS Cmd+N.
         // PS-19: no !isInput gate — the search box always has focus on Windows, so
@@ -766,10 +768,12 @@ public sealed class AppViewModel : INotifyPropertyChanged
         switch (key)
         {
             case Key.Down:
+                CancelNew(); // PS-37: mac drops the create form on arrow nav
                 SelectedIndex = (SelectedIndex + 1) % Math.Max(ListCount, 1);
                 ButtonFocusIndex = 0;
                 return true;
             case Key.Up:
+                CancelNew(); // PS-37: mac drops the create form on arrow nav
                 SelectedIndex = (SelectedIndex - 1 + Math.Max(ListCount, 1)) % Math.Max(ListCount, 1);
                 ButtonFocusIndex = 0;
                 return true;
