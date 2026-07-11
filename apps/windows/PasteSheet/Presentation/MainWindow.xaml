@@ -26,9 +26,17 @@
         <p:TimeoutSegmentConverter x:Key="SegBg" Background="True" />
         <p:TimeoutSegmentConverter x:Key="SegFg" Background="False" />
         <p:TimeoutSegmentConverter x:Key="SegWt" Weight="True" />
-        <p:SearchItemsHeaderConverter x:Key="ItemsHeader" />
         <p:ConfirmButtonBrushConverter x:Key="ConfirmBg" Background="True" />
         <p:ConfirmButtonBrushConverter x:Key="ConfirmFg" Background="False" />
+
+        <!-- Rows grouped by search section so "FOLDERS (N)" / "ITEMS (N)" headers
+             render inline above each section (PS-63, mac SearchResultView). Outside
+             of search every row has an empty label: one group, header collapsed. -->
+        <CollectionViewSource x:Key="GroupedRows" Source="{Binding Rows}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="SectionLabel" />
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
 
         <SolidColorBrush x:Key="Bg" Color="#121212" />
         <SolidColorBrush x:Key="Panel" Color="#1A1A1A" />
@@ -503,27 +511,6 @@
                                TextTrimming="CharacterEllipsis"
                                Visibility="{Binding IsSearching, Converter={StaticResource BoolVis}}" />
 
-                    <!-- Section header "ITEMS (N)" above the search results (PS-7). Hidden
-                         when not searching or when no items matched. -->
-                    <TextBlock DockPanel.Dock="Top" Margin="14,6,14,2"
-                               FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextTertiary}">
-                        <TextBlock.Text>
-                            <MultiBinding Converter="{StaticResource ItemsHeader}">
-                                <Binding Path="Rows" />
-                                <Binding Path="ResultSummary" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <Trigger Property="Text" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-
                     <!-- Bottom footers: hint (item list) / folder count (root) -->
                     <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Del delete"
                                Margin="14,8,14,8" FontSize="11" Foreground="{StaticResource TextTertiary}"
@@ -561,9 +548,35 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True"
                          VirtualizingPanel.VirtualizationMode="Recycling"
-                         ItemsSource="{Binding Rows}"
+                         VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                         ItemsSource="{Binding Source={StaticResource GroupedRows}}"
                          SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}"
                          MouseDoubleClick="OnListDoubleClick">
+                    <!-- Inline "FOLDERS (N)" / "ITEMS (N)" search section headers (PS-63),
+                         styled like the former PS-7 docked ITEMS header. Groups only
+                         exist for rows carrying a SectionLabel, so a header shows only
+                         when its section has results (mac SearchResultView parity). -->
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Margin="8,6,8,2"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextTertiary}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Name}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border CornerRadius="12" Padding="0">

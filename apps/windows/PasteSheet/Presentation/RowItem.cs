@@ -13,6 +13,11 @@ public sealed class RowItem
     public PasteItem? Item { get; init; }
     public bool ShowFolderLabel { get; init; }
 
+    /// Search-result section this row belongs to, e.g. "FOLDERS (2)" / "ITEMS (5)".
+    /// The list groups by this label to render the mac SearchResultView section
+    /// headers inline (PS-63); empty outside of search (single headerless group).
+    public string SectionLabel { get; init; } = "";
+
     // Editing state baked in at row build time (avoids per-row FindAncestor
     // bindings, which are slow to evaluate across many rows on render).
     public AppViewModel? Vm { get; init; }

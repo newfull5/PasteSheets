@@ -214,10 +214,15 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
         if (!string.IsNullOrEmpty(SearchQuery))
         {
-            foreach (var d in FilteredDirectories)
-                Rows.Add(new RowItem { Kind = RowKind.Directory, Directory = d });
-            foreach (var it in FilteredItems)
-                Rows.Add(new RowItem { Kind = RowKind.Item, Item = it, Vm = this, IsEditing = EditingItemId == it.Id, ShowFolderLabel = true });
+            // PS-63: mac SearchResultView shows a "Folders (N)" section (folder-name
+            // matches) above "Items (N)". Bake the section label into each row; the
+            // ListBox groups by it to render the headers inline.
+            var dirs = FilteredDirectories;
+            var items = FilteredItems;
+            foreach (var d in dirs)
+                Rows.Add(new RowItem { Kind = RowKind.Directory, Directory = d, SectionLabel = $"FOLDERS ({dirs.Count})" });
+            foreach (var it in items)
+                Rows.Add(new RowItem { Kind = RowKind.Item, Item = it, Vm = this, IsEditing = EditingItemId == it.Id, ShowFolderLabel = true, SectionLabel = $"ITEMS ({items.Count})" });
         }
         else if (CurrentView == ViewType.Directories)
         {
