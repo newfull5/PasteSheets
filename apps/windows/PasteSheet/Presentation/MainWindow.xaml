@@ -502,6 +502,10 @@
                                    Foreground="{StaticResource TextTertiary}" HorizontalAlignment="Center" />
                         <TextBlock Text="No matches" FontSize="15" Foreground="{StaticResource TextSecondary}"
                                    HorizontalAlignment="Center" Margin="0,8,0,0" />
+                        <!-- PS-62: mac SearchResultView subtitle -->
+                        <TextBlock FontSize="13" Foreground="{StaticResource TextTertiary}"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"
+                                   Text="{Binding SearchQuery, StringFormat=Nothing found for &quot;{0}&quot;}" />
                     </StackPanel>
 
                 <ListBox x:Name="List" Margin="6,0"
@@ -567,6 +571,7 @@
                                         </Grid.ContextMenu>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
@@ -608,10 +613,25 @@
                                                 </Style>
                                             </Border.Style>
                                         </Border>
-                                        <TextBlock Grid.Column="1" Text="{Binding DirectoryName}" FontSize="15"
+                                        <!-- PS-24: folder glyph, mirroring mac DirectoryRow's Image(systemName: "folder") -->
+                                        <TextBlock Grid.Column="1" Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                   FontSize="14" Width="20" Margin="0,0,10,0" TextAlignment="Center"
+                                                   VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource TextTertiary}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Grid.Column="2" Text="{Binding DirectoryName}" FontSize="15"
                                                    Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="2" Text="{Binding CountText}" FontSize="12" FontWeight="Medium"
+                                        <TextBlock Grid.Column="3" Text="{Binding CountText}" FontSize="12" FontWeight="Medium"
                                                    Foreground="{StaticResource TextTertiary}" VerticalAlignment="Center" />
                                     </Grid>
 

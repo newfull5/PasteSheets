@@ -68,7 +68,8 @@ public sealed class RowItem
             if (Item is null) return "";
             if (DateTime.TryParse(Item.CreatedAt, CultureInfo.InvariantCulture,
                     DateTimeStyles.RoundtripKind, out var dt))
-                return dt.ToLocalTime().ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture);
+                // PS-49: no year, matching mac's "MMM d, h:mm a" (HistoryItemRow).
+                return dt.ToLocalTime().ToString("MMM d, h:mm tt", CultureInfo.InvariantCulture);
             return Item.CreatedAt;
         }
     }
@@ -80,5 +81,5 @@ public sealed class RowItem
     public bool IsDirectory => Kind == RowKind.Directory;
     public bool IsItem => Kind == RowKind.Item;
 
-    public string NewLabel => Kind == RowKind.NewFolder ? "New Folder" : "New Item";
+    public string NewLabel => Kind == RowKind.NewFolder ? "New folder" : "New item";
 }
