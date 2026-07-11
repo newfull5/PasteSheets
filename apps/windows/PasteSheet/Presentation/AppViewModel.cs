@@ -730,7 +730,9 @@ public sealed class AppViewModel : INotifyPropertyChanged
         // keys (caret movement, typing) instead of hijacking them for list nav.
         if (isInput && (EditingItemId is not null || IsCreatingNew)) return false;
         // Ctrl+N: new item (in a folder) or new folder (at root). Mirrors macOS Cmd+N.
-        if (key == Key.N && hasCmd && !isInput && string.IsNullOrEmpty(SearchQuery))
+        // PS-19: no !isInput gate — the search box always has focus on Windows, so
+        // isInput is always true; Ctrl+N never types a character anyway.
+        if (key == Key.N && hasCmd && string.IsNullOrEmpty(SearchQuery))
         {
             if (CurrentView == ViewType.Items) { StartNewItem(); return true; }
             if (CurrentView == ViewType.Directories) { StartNewFolder(); return true; }
@@ -790,14 +792,18 @@ public sealed class AppViewModel : INotifyPropertyChanged
         }
 
         // Space - detail view
-        if (key == Key.Space && !isInput && CurrentView == ViewType.Items && string.IsNullOrEmpty(SearchQuery))
+        // PS-19: with the always-focused search box isInput is always true; an empty
+        // query means the space couldn't be meaningful search input, so take it.
+        if (key == Key.Space && CurrentView == ViewType.Items && string.IsNullOrEmpty(SearchQuery))
         {
             var its = FilteredItems;
             if (SelectedIndex < its.Count) { DetailItem = its[SelectedIndex]; return true; }
         }
 
         // Ctrl+Backspace delete
-        if (key == Key.Back && hasCmd && !isInput)
+        // PS-19: also fire when the (always-focused) search box is empty — there is
+        // no word to delete then. With a non-empty query it stays word-delete.
+        if (key == Key.Back && hasCmd && (!isInput || string.IsNullOrEmpty(SearchQuery)))
         {
             var dirs = FilteredDirectories;
             if (!string.IsNullOrEmpty(SearchQuery))
