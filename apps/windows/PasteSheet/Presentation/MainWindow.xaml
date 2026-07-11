@@ -1078,7 +1078,19 @@
             <Border Background="#8C000000" CornerRadius="12"
                     Visibility="{Binding HasDetail, Converter={StaticResource BoolVis}}"
                     MouseDown="OnDetailBackdrop">
-                <Border Background="{StaticResource Surface}" CornerRadius="12" Margin="19,40"
+                <!-- macOS parity: modal is 90% of panel width x 80% of panel height, centered -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.05*" />
+                        <ColumnDefinition Width="0.9*" />
+                        <ColumnDefinition Width="0.05*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="0.1*" />
+                        <RowDefinition Height="0.8*" />
+                        <RowDefinition Height="0.1*" />
+                    </Grid.RowDefinitions>
+                <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="12"
                         BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1" ClipToBounds="True">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -1125,6 +1137,7 @@
                         </StackPanel>
                     </Grid>
                 </Border>
+                </Grid>
             </Border>
 
             <!-- Modal overlay -->
