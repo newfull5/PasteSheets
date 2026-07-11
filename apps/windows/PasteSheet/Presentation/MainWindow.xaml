@@ -6,6 +6,8 @@
         WindowStyle="None" AllowsTransparency="False" Background="#121212"
         ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize"
         ShowActivated="True" SnapsToDevicePixels="True"
+        KeyboardNavigation.TabNavigation="None"
+        KeyboardNavigation.ControlTabNavigation="None"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True"
         TextOptions.TextRenderingMode="ClearType"
