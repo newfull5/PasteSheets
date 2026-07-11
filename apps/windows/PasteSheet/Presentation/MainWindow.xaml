@@ -453,6 +453,11 @@
                             Visibility="{Binding CurrentView, Converter={StaticResource NotSettingsVis}, ConverterParameter=Settings}" />
                 </Grid>
 
+                <!-- 1px divider between header and content (PS-58), matching mac
+                     ContentView's Divider().opacity(0.1). -->
+                <Border Grid.Row="0" Height="1" VerticalAlignment="Bottom"
+                        Background="{StaticResource White10}" />
+
                 <!-- List + search summary / footers -->
                 <DockPanel Grid.Row="1"
                            Visibility="{Binding CurrentView, Converter={StaticResource NotSettingsVis}, ConverterParameter=Settings}">
