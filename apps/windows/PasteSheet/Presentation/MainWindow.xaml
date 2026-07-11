@@ -546,6 +546,14 @@
                                    Text="{Binding SearchQuery, StringFormat='Nothing found for \&quot;{0}\&quot;'}" />
                     </StackPanel>
 
+                    <!-- PS-26: empty-folder notice (mac ItemListView "No items found in this
+                         folder", 14pt white 40%, 40 below the New item row). Hidden while
+                         searching or while the inline creation form is open. -->
+                    <TextBlock Text="No items found in this folder" FontSize="14" Foreground="#66FFFFFF"
+                               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0"
+                               IsHitTestVisible="False"
+                               Visibility="{Binding HasNoItems, Converter={StaticResource BoolVis}}" />
+
                 <ListBox x:Name="List" Margin="6,0"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"

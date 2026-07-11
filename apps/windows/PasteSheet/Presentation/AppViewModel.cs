@@ -187,6 +187,11 @@ public sealed class AppViewModel : INotifyPropertyChanged
     /// True when a search returned nothing — drives the "No matches" empty state.
     public bool HasNoResults => IsSearching && FilteredDirectories.Count == 0 && FilteredItems.Count == 0;
 
+    /// PS-26: true when the open folder has no items — drives the mac ItemListView
+    /// "No items found in this folder" notice (hidden while the creation form is open).
+    public bool HasNoItems =>
+        CurrentView == ViewType.Items && !IsSearching && FilteredItems.Count == 0 && !IsCreatingNew;
+
     /// Root footer: "N folders · M items".
     public string FolderFooter
     {
@@ -231,6 +236,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         OnChanged(nameof(IsSearching));
         OnChanged(nameof(ResultSummary));
         OnChanged(nameof(HasNoResults));
+        OnChanged(nameof(HasNoItems));
         OnChanged(nameof(FolderFooter));
         OnChanged(nameof(ShowItemHint));
         SyncSelection();
@@ -449,7 +455,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
     // MARK: - Inline "New Folder / New Item" creation (in-place, like macOS)
 
     private bool _isCreatingNew;
-    public bool IsCreatingNew { get => _isCreatingNew; private set { _isCreatingNew = value; OnChanged(); } }
+    public bool IsCreatingNew { get => _isCreatingNew; private set { _isCreatingNew = value; OnChanged(); OnChanged(nameof(HasNoItems)); } }
     private RowKind _newKind = RowKind.NewItem;
 
     public string NewInputContent { get; set; } = "";
