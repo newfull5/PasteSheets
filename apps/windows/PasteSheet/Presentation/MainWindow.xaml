@@ -20,6 +20,7 @@
         <p:StringEmptyToVisibilityConverter x:Key="NotEmptyVis" Invert="True" />
         <p:ActionButtonBrushConverter x:Key="BtnBg" Background="True" />
         <p:ActionButtonBrushConverter x:Key="BtnFg" Background="False" />
+        <p:ActionButtonBrushConverter x:Key="BtnBorder" Border="True" />
         <p:TimeoutSegmentConverter x:Key="SegBg" Background="True" />
         <p:TimeoutSegmentConverter x:Key="SegFg" Background="False" />
         <p:TimeoutSegmentConverter x:Key="SegWt" Weight="True" />
@@ -822,10 +823,13 @@
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
+                                                    <!-- Gold-primary Paste: always gold fill + dark text (macOS parity);
+                                                         keyboard focus shows as a focusBorder ring instead of a fill change. -->
                                                     <Button Grid.Column="0" Content="Paste" Style="{StaticResource ActionButton}" Margin="0,0,8,0"
                                                             Click="OnRowPaste"
-                                                            Background="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBg}, ConverterParameter=0}"
-                                                            Foreground="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnFg}, ConverterParameter=0}" />
+                                                            Background="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBg}, ConverterParameter=0:gold}"
+                                                            Foreground="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnFg}, ConverterParameter=0:gold}"
+                                                            BorderBrush="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBorder}, ConverterParameter=0:gold}" />
                                                     <Button Grid.Column="1" Content="Edit" Style="{StaticResource ActionButton}"
                                                             Click="OnRowEdit"
                                                             Background="{Binding DataContext.ButtonFocusIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BtnBg}, ConverterParameter=1}"
