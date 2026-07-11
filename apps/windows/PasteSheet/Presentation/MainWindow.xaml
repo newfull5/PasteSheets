@@ -706,7 +706,7 @@
                                     </Grid>
 
                                     <!-- ============ Item row ============ -->
-                                    <Grid Margin="14,12" Visibility="{Binding IsItem, Converter={StaticResource BoolVis}}">
+                                    <Grid Margin="14,11" Visibility="{Binding IsItem, Converter={StaticResource BoolVis}}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
