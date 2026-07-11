@@ -505,7 +505,7 @@
                         <!-- PS-62: mac SearchResultView subtitle -->
                         <TextBlock FontSize="13" Foreground="{StaticResource TextTertiary}"
                                    HorizontalAlignment="Center" Margin="0,8,0,0"
-                                   Text="{Binding SearchQuery, StringFormat=Nothing found for &quot;{0}&quot;}" />
+                                   Text="{Binding SearchQuery, StringFormat='Nothing found for \&quot;{0}\&quot;'}" />
                     </StackPanel>
 
                 <ListBox x:Name="List" Margin="6,0"
