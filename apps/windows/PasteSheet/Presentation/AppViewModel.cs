@@ -378,10 +378,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
     public void DeleteItem(long id)
     {
         var target = _allItems.FirstOrDefault(i => i.Id == id);
-        var preview = target?.Content ?? "";
-        int nl = preview.IndexOfAny(new[] { '\r', '\n' });
-        if (nl >= 0) preview = preview[..nl];
-        if (preview.Length > 200) preview = preview[..200];
+        var preview = target?.Content;
 
         Modal = new ModalState
         {

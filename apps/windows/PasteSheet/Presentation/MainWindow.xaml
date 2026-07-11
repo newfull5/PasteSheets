@@ -1212,8 +1212,8 @@
                         <!-- Delete target preview block -->
                         <Border CornerRadius="8" Padding="12,10" Margin="0,12,0,0"
                                 Background="{StaticResource Surface}" BorderBrush="{StaticResource Divider}" BorderThickness="1"
-                                Visibility="{Binding Modal.Preview, Converter={StaticResource NotEmptyVis}}">
-                            <TextBlock Text="{Binding Modal.Preview}" Foreground="{StaticResource TextSecondary}"
+                                Visibility="{Binding Modal.HasPreview, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="{Binding Modal.PreviewText}" Foreground="{StaticResource TextSecondary}"
                                        FontFamily="Consolas" FontSize="13" TextTrimming="CharacterEllipsis"
                                        TextWrapping="Wrap" MaxHeight="36" />
                         </Border>
@@ -1229,7 +1229,7 @@
                                     Background="{StaticResource Surface}" Foreground="{StaticResource TextPrimary}"
                                     BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1"
                                     FontSize="14" Cursor="Hand" />
-                            <Button x:Name="ModalConfirm" Content="{Binding Modal.ConfirmText}" Padding="16,8"
+                            <Button x:Name="ModalConfirm" Content="{Binding Modal.ConfirmButtonText}" Padding="16,8"
                                     Click="OnModalConfirm" FontSize="14" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"
                                     Background="{Binding Modal.IsDanger, Converter={StaticResource ConfirmBg}}"
                                     Foreground="{Binding Modal.IsDanger, Converter={StaticResource ConfirmFg}}" />
