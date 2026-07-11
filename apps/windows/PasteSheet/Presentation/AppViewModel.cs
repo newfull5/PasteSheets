@@ -57,6 +57,9 @@ public sealed class AppViewModel : INotifyPropertyChanged
             // Clearing keeps the current selection — mac resets there too, but that
             // is the PS-31 bug, not the desired behavior.
             bool userEdit = _searchQuery != value && !string.IsNullOrEmpty(value);
+            // PS-23: typing engages the search field (mac: the first character
+            // routes through shouldFocusSearch and focuses the TextField).
+            if (userEdit) _isSearchFocused = true;
             _searchQuery = value;
             OnChanged();
             RebuildRows();
@@ -171,6 +174,19 @@ public sealed class AppViewModel : INotifyPropertyChanged
     public bool ShowBack =>
         (CurrentView is ViewType.Items or ViewType.Settings) && string.IsNullOrEmpty(SearchQuery);
 
+    /// PS-23: mirrors mac HeaderView's isSearchFocused. The Windows search box
+    /// keeps real keyboard focus whenever the panel is open (PS-19), so raw
+    /// focus can't drive the field's visibility; this flag tracks the mac
+    /// transitions instead: cleared when the panel is shown or an inline
+    /// editor takes over, set when the user types a query, and kept when
+    /// Escape clears the query (mac keeps the field focused, so the empty box
+    /// stays visible with its placeholder).
+    private bool _isSearchFocused;
+
+    /// mac HeaderView: the search field is shown (and the title hidden) when
+    /// the field is focused or the query is non-empty.
+    public bool IsSearchBarVisible => _isSearchFocused || IsSearching;
+
     // MARK: - Search summary / footers (visual chrome)
 
     public bool IsSearching => !string.IsNullOrEmpty(SearchQuery);
@@ -212,7 +228,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
     private void RebuildRows()
     {
         Rows.Clear();
-        if (CurrentView == ViewType.Settings) { OnChanged(nameof(HeaderTitle)); OnChanged(nameof(ShowBack)); return; }
+        if (CurrentView == ViewType.Settings) { OnChanged(nameof(HeaderTitle)); OnChanged(nameof(ShowBack)); OnChanged(nameof(IsSearchBarVisible)); return; }
 
         if (!string.IsNullOrEmpty(SearchQuery))
         {
@@ -241,6 +257,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         OnChanged(nameof(HeaderTitle));
         OnChanged(nameof(ShowBack));
         OnChanged(nameof(IsSearching));
+        OnChanged(nameof(IsSearchBarVisible));
         OnChanged(nameof(ResultSummary));
         OnChanged(nameof(HasNoResults));
         OnChanged(nameof(HasNoItems));
@@ -323,6 +340,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         LoadAutoHideSettings();
         ResetAutoHideTimer();
         _searchQuery = "";
+        _isSearchFocused = false; // mac HeaderView: unfocus search whenever the window (re)opens
         OnChanged(nameof(SearchQuery));
         if (CurrentView == ViewType.Directories) _selectedIndex = 0;
         RebuildRows();
@@ -353,6 +371,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         EditContent = item.Content;
         EditMemo = item.Memo ?? "";
         CurrentDirectory = item.Directory;
+        _isSearchFocused = false; // mac: the edit field takes first responder away from search
         EditingItemId = item.Id;
         OnChanged(nameof(EditContent));
         OnChanged(nameof(EditMemo));
@@ -473,6 +492,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
         _newKind = RowKind.NewFolder;
         NewInputContent = ""; NewInputMemo = "";
         OnChanged(nameof(NewInputContent)); OnChanged(nameof(NewInputMemo));
+        _isSearchFocused = false; // mac: the creation field takes first responder away from search
+        OnChanged(nameof(IsSearchBarVisible));
         IsCreatingNew = true;
     }
 
@@ -481,6 +502,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
         _newKind = RowKind.NewItem;
         NewInputContent = ""; NewInputMemo = "";
         OnChanged(nameof(NewInputContent)); OnChanged(nameof(NewInputMemo));
+        _isSearchFocused = false; // mac: the creation field takes first responder away from search
+        OnChanged(nameof(IsSearchBarVisible));
         IsCreatingNew = true;
     }
 
