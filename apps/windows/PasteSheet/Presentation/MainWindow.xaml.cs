@@ -67,11 +67,11 @@ public partial class MainWindow : Window, IWindowHost
         BeginAnimation(OpacityProperty,
             new DoubleAnimation(0, 1, SlideDuration));
 
-        Dispatcher.BeginInvoke(() =>
-        {
-            SearchBox.Focus();
-            SearchBox.SelectAll();
-        }, DispatcherPriority.Input);
+        // PS-20: no SelectAll here — SearchQuery is reset to "" on every show
+        // (OnWindowBecameVisible), and a delayed SelectAll would select a first
+        // character typed before this invoke runs, letting the next keystroke
+        // replace it (macOS PS-13 analogue).
+        Dispatcher.BeginInvoke(() => SearchBox.Focus(), DispatcherPriority.Input);
     }
 
     public void HidePanel()
