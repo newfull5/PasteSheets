@@ -176,6 +176,38 @@
             <Setter Property="Margin" Value="0,0,0,12" />
         </Style>
 
+        <!-- Modal/detail card entrance: scale 0.95→1 + opacity 0→1, 0.2s easeInOut (macOS parity) -->
+        <Style x:Key="ModalCardAnim" TargetType="Border">
+            <Style.Triggers>
+                <Trigger Property="IsVisible" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                 From="0" To="1" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                 From="0.95" To="1" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                 From="0.95" To="1" Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Settings segmented timeout button -->
         <Style x:Key="SegButton" TargetType="Button">
             <Setter Property="Cursor" Value="Hand" />
@@ -1092,7 +1124,11 @@
                         <RowDefinition Height="0.1*" />
                     </Grid.RowDefinitions>
                 <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="12"
-                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1" ClipToBounds="True">
+                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1" ClipToBounds="True"
+                        Style="{StaticResource ModalCardAnim}" RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -1147,7 +1183,11 @@
                     MouseDown="OnModalBackdrop">
                 <Border Background="{StaticResource PanelBg}" CornerRadius="12" Padding="20" MaxWidth="320"
                         Margin="20" VerticalAlignment="Center" HorizontalAlignment="Center"
-                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1">
+                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1"
+                        Style="{StaticResource ModalCardAnim}" RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
                     <Border.Effect>
                         <DropShadowEffect Color="#000000" Opacity="0.45" BlurRadius="24" ShadowDepth="12" Direction="270" />
                     </Border.Effect>
