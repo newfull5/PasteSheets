@@ -139,7 +139,7 @@ public sealed class TimeoutSegmentConverter : IValueConverter
     /// instead of a brush — so the selected chip reads as emphasized (macOS parity).
     public bool Weight { get; set; }
 
-    private static readonly Brush Selected = FrozenA(0x2E, 0xC7, 0xCA, 0x46);     // matchChip (gold @18%)
+    private static readonly Brush Selected = FrozenA(0x29, 0xC7, 0xCA, 0x46);     // segment fill (gold @16%, macOS parity; distinct from MatchChip)
     private static readonly Brush TextPrimary = FrozenA(0xFF, 0xED, 0xED, 0xE8);
     private static readonly Brush TextSecondary = FrozenA(0xFF, 0x9A, 0x9A, 0x92);
     private static readonly Brush Transparent = FrozenA(0x00, 0x00, 0x00, 0x00);

@@ -216,7 +216,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="7" Padding="10,4">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="10,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
@@ -1025,7 +1025,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="Hide after" FontSize="14"
                                                Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Background="#0DFFFFFF" CornerRadius="10" Padding="3">
+                                    <Border Grid.Column="1" Background="#0FFFFFFF" CornerRadius="10" Padding="3">
                                         <StackPanel Orientation="Horizontal">
                                             <Button Content="3s" Tag="3" Style="{StaticResource SegButton}" Click="OnTimeoutClick"
                                                     Background="{Binding AutoHideTimeout, Converter={StaticResource SegBg}, ConverterParameter=3}"
