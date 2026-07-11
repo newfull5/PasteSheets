@@ -245,6 +245,126 @@
             </StackPanel>
         </DataTemplate>
 
+        <!-- ===== Thin overlay scrollbars (PS-69). macOS-style: 6px wide, no
+             arrow buttons, transparent track, translucent white thumb that
+             brightens on hover. The ScrollViewer template stacks the bars on
+             top of the content (single grid cell) so they take no layout
+             width, like the macOS overlay scrollers. Implicit styles below
+             restyle every ScrollViewer/ScrollBar in the window, including the
+             ones inside ListBox and TextBox templates (list, settings, detail
+             modal, inline edit box). ===== -->
+
+        <!-- Invisible page-up/down track buttons (replace the arrow chrome) -->
+        <Style x:Key="ScrollPageButton" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Rounded translucent thumb -->
+        <Style x:Key="ScrollThumb" TargetType="Thumb">
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="tb" Background="#40FFFFFF" CornerRadius="3" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="tb" Property="Background" Value="#66FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="tb" Property="Background" Value="#66FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ControlTemplate x:Key="ThinVerticalScrollBar" TargetType="ScrollBar">
+            <Grid Background="Transparent">
+                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Style="{StaticResource ScrollPageButton}" Command="ScrollBar.PageUpCommand" />
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Style="{StaticResource ScrollPageButton}" Command="ScrollBar.PageDownCommand" />
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb Style="{StaticResource ScrollThumb}" />
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="ThinHorizontalScrollBar" TargetType="ScrollBar">
+            <Grid Background="Transparent">
+                <Track x:Name="PART_Track">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Style="{StaticResource ScrollPageButton}" Command="ScrollBar.PageLeftCommand" />
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Style="{StaticResource ScrollPageButton}" Command="ScrollBar.PageRightCommand" />
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb Style="{StaticResource ScrollThumb}" />
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Width" Value="6" />
+            <Setter Property="MinWidth" Value="6" />
+            <Setter Property="Template" Value="{StaticResource ThinVerticalScrollBar}" />
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Width" Value="Auto" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="Height" Value="6" />
+                    <Setter Property="MinHeight" Value="6" />
+                    <Setter Property="Template" Value="{StaticResource ThinHorizontalScrollBar}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Overlay ScrollViewer: content fills the whole area, scrollbars
+             float above it instead of occupying a layout column/row. -->
+        <Style TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    Content="{TemplateBinding Content}"
+                                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                    CanContentScroll="{TemplateBinding CanContentScroll}" />
+                            <ScrollBar x:Name="PART_VerticalScrollBar" Orientation="Vertical"
+                                       HorizontalAlignment="Right" Margin="0,2,2,2" Cursor="Arrow"
+                                       Value="{TemplateBinding VerticalOffset}"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                            <ScrollBar x:Name="PART_HorizontalScrollBar" Orientation="Horizontal"
+                                       VerticalAlignment="Bottom" Margin="2,0,2,2" Cursor="Arrow"
+                                       Value="{TemplateBinding HorizontalOffset}"
+                                       Maximum="{TemplateBinding ScrollableWidth}"
+                                       ViewportSize="{TemplateBinding ViewportWidth}"
+                                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- List row container: stretch, no default selection chrome -->
         <Style TargetType="ListBoxItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -290,15 +410,39 @@
                     <Grid Grid.Column="1" VerticalAlignment="Center">
                         <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0"
                                  Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}"
-                                 FontSize="22" FontWeight="Medium" Padding="0"
+                                 FontWeight="Medium" Padding="0"
                                  VerticalContentAlignment="Center"
-                                 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" />
+                                 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.Style>
+                                <!-- Header font matches mac HeaderView: 17 when back button shown, 20 otherwise -->
+                                <Style TargetType="TextBox">
+                                    <Setter Property="FontSize" Value="20" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowBack}" Value="True">
+                                            <Setter Property="FontSize" Value="17" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
                         <!-- Title shown when no query; click passes through to the textbox -->
                         <StackPanel Orientation="Horizontal" IsHitTestVisible="False"
                                     VerticalAlignment="Center"
                                     Visibility="{Binding SearchQuery, Converter={StaticResource EmptyVis}}">
                             <TextBlock Text="{Binding HeaderTitle}" Foreground="{StaticResource TextPrimary}"
-                                       FontSize="22" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                       FontWeight="Medium" TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <!-- Header font matches mac HeaderView: 17 when back button shown, 20 otherwise -->
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="20" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ShowBack}" Value="True">
+                                                <Setter Property="FontSize" Value="17" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                     </Grid>
 
