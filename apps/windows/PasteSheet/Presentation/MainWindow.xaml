@@ -485,7 +485,7 @@
                     </TextBlock>
 
                     <!-- Bottom footers: hint (item list) / folder count (root) -->
-                    <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Ctrl+&#x232B; delete"
+                    <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Del delete"
                                Margin="14,8,14,8" FontSize="11" Foreground="{StaticResource TextTertiary}"
                                HorizontalAlignment="Center"
                                Visibility="{Binding ShowItemHint, Converter={StaticResource BoolVis}}" />
