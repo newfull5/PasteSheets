@@ -433,8 +433,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
     {
         Modal = new ModalState
         {
-            Title = "Delete folder",
-            Message = $"Folder \"{name}\" and all items inside will be permanently deleted.",
+            Title = "Delete Folder",
+            Message = $"Are you sure you want to delete folder \"{name}\"? All items inside will be lost.",
             ConfirmText = "Delete",
             IsDanger = true,
             OnConfirm = _ =>
