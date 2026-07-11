@@ -705,8 +705,10 @@
                                             <!-- Item: content field first, then memo -->
                                             <StackPanel Visibility="{Binding IsNewItem, Converter={StaticResource BoolVis}}">
                                                 <TextBlock Text="CONTENT" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="2,0,0,4" />
+                                                <!-- 0.5 hairline border to match mac (PS-59). -->
                                                 <Border Background="{StaticResource Surface}" CornerRadius="8" Padding="8"
-                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1">
+                                                        UseLayoutRounding="False" SnapsToDevicePixels="False"
+                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="0.5">
                                                     <Grid>
                                                         <TextBox x:Name="NewItemContentBox" Background="Transparent" BorderThickness="0"
                                                                  Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}" FontSize="14" MinHeight="80"
@@ -720,8 +722,10 @@
                                                     </Grid>
                                                 </Border>
                                                 <TextBlock Text="MEMO · optional" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="2,8,0,4" />
+                                                <!-- 0.5 hairline border to match mac (PS-59). -->
                                                 <Border Background="{StaticResource Surface}" CornerRadius="8" Padding="8"
-                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1">
+                                                        UseLayoutRounding="False" SnapsToDevicePixels="False"
+                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="0.5">
                                                     <Grid>
                                                         <TextBox x:Name="NewItemMemoBox" Background="Transparent" BorderThickness="0"
                                                                  Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}" FontSize="13" FontWeight="Medium"
@@ -804,9 +808,11 @@
                                                            p:Highlight.SourceText="{Binding Memo}"
                                                            p:Highlight.BaseForeground="{StaticResource TextPrimary}"
                                                            Visibility="{Binding HasMemo, Converter={StaticResource BoolVis}}" />
+                                                <!-- 0.5 hairline border to match mac (PS-59). -->
                                                 <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="4"
                                                         Padding="7,2" VerticalAlignment="Center"
-                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="1"
+                                                        UseLayoutRounding="False" SnapsToDevicePixels="False"
+                                                        BorderBrush="{StaticResource NeutralBorder}" BorderThickness="0.5"
                                                         Visibility="{Binding ShowFolderLabel, Converter={StaticResource BoolVis}}">
                                                     <StackPanel Orientation="Horizontal">
                                                         <Ellipse Width="5" Height="5" Fill="{StaticResource TextSecondary}"
@@ -905,8 +911,10 @@
                                             </ContentControl.Style>
                                         </ContentControl>
 
-                                        <!-- Thin divider below unselected item rows (W-05). -->
-                                        <Border Grid.Column="0" Grid.ColumnSpan="2" Height="1" Margin="8,11,8,-13"
+                                        <!-- Thin divider below unselected item rows (W-05).
+                                             0.5 hairline to match mac; needs rounding opt-outs to render sub-pixel (PS-59). -->
+                                        <Border Grid.Column="0" Grid.ColumnSpan="2" Height="0.5" Margin="8,11,8,-13"
+                                                UseLayoutRounding="False" SnapsToDevicePixels="False"
                                                 VerticalAlignment="Bottom" Background="{StaticResource Divider}"
                                                 Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource BoolVisInvert}}" />
                                     </Grid>
