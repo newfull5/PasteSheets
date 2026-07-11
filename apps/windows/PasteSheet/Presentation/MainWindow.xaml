@@ -6,6 +6,8 @@
         WindowStyle="None" AllowsTransparency="False" Background="#121212"
         ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize"
         ShowActivated="True" SnapsToDevicePixels="True"
+        KeyboardNavigation.TabNavigation="None"
+        KeyboardNavigation.ControlTabNavigation="None"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True"
         TextOptions.TextRenderingMode="ClearType"
@@ -24,9 +26,17 @@
         <p:TimeoutSegmentConverter x:Key="SegBg" Background="True" />
         <p:TimeoutSegmentConverter x:Key="SegFg" Background="False" />
         <p:TimeoutSegmentConverter x:Key="SegWt" Weight="True" />
-        <p:SearchItemsHeaderConverter x:Key="ItemsHeader" />
         <p:ConfirmButtonBrushConverter x:Key="ConfirmBg" Background="True" />
         <p:ConfirmButtonBrushConverter x:Key="ConfirmFg" Background="False" />
+
+        <!-- Rows grouped by search section so "FOLDERS (N)" / "ITEMS (N)" headers
+             render inline above each section (PS-63, mac SearchResultView). Outside
+             of search every row has an empty label: one group, header collapsed. -->
+        <CollectionViewSource x:Key="GroupedRows" Source="{Binding Rows}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="SectionLabel" />
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
 
         <SolidColorBrush x:Key="Bg" Color="#121212" />
         <SolidColorBrush x:Key="Panel" Color="#1A1A1A" />
@@ -439,44 +449,76 @@
                             Click="OnBackClick"
                             Visibility="{Binding ShowBack, Converter={StaticResource BoolVis}}" />
 
-                    <!-- Title / search overlay -->
+                    <!-- Title / search overlay (PS-23): mac HeaderView ZStack — the title
+                         fades out and the visible search field (magnifier icon, bordered
+                         surface box, "Search clipboard…" placeholder) fades in while the
+                         search is engaged (field focused or query non-empty). Opacity is
+                         used instead of Visibility so the always-focused SearchBox (PS-19)
+                         keeps keyboard focus while hidden. -->
                     <Grid Grid.Column="1" VerticalAlignment="Center">
-                        <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0"
-                                 Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}"
-                                 FontWeight="Medium" Padding="0"
-                                 VerticalContentAlignment="Center"
-                                 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.Style>
+                        <!-- Title shown while search is inactive; click passes through to the textbox -->
+                        <TextBlock Text="{Binding HeaderTitle}" Foreground="{StaticResource TextPrimary}"
+                                   FontWeight="Medium" TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" IsHitTestVisible="False">
+                            <TextBlock.Style>
                                 <!-- Header font matches mac HeaderView: 17 when back button shown, 20 otherwise -->
-                                <Style TargetType="TextBox">
+                                <Style TargetType="TextBlock">
                                     <Setter Property="FontSize" Value="20" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ShowBack}" Value="True">
                                             <Setter Property="FontSize" Value="17" />
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsSearchBarVisible}" Value="True">
+                                            <Setter Property="Opacity" Value="0" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBox.Style>
-                        </TextBox>
-                        <!-- Title shown when no query; click passes through to the textbox -->
-                        <StackPanel Orientation="Horizontal" IsHitTestVisible="False"
-                                    VerticalAlignment="Center"
-                                    Visibility="{Binding SearchQuery, Converter={StaticResource EmptyVis}}">
-                            <TextBlock Text="{Binding HeaderTitle}" Foreground="{StaticResource TextPrimary}"
-                                       FontWeight="Medium" TextTrimming="CharacterEllipsis">
-                                <TextBlock.Style>
-                                    <!-- Header font matches mac HeaderView: 17 when back button shown, 20 otherwise -->
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="FontSize" Value="20" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ShowBack}" Value="True">
-                                                <Setter Property="FontSize" Value="17" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Search field: mac 34px surface box, radius 8, 10px horizontal
+                             padding, icon 14 + field 15 with 8px gap; gold 1.5px border
+                             while the box has keyboard focus, neutral 1px otherwise. -->
+                        <Border Height="34" CornerRadius="8" Padding="10,0"
+                                Background="{StaticResource Surface}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Opacity" Value="0" />
+                                    <Setter Property="BorderBrush" Value="{StaticResource NeutralBorder}" />
+                                    <Setter Property="BorderThickness" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSearchBarVisible}" Value="True">
+                                            <Setter Property="Opacity" Value="1" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=SearchBox}" Value="True">
+                                            <Setter Property="BorderBrush" Value="{StaticResource FocusBorder}" />
+                                            <Setter Property="BorderThickness" Value="1.5" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="{StaticResource TextTertiary}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" IsHitTestVisible="False" />
+                                <Grid Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0"
+                                             Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}"
+                                             FontSize="15" Padding="0"
+                                             VerticalContentAlignment="Center"
+                                             Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" />
+                                    <!-- mac TextField placeholder: shown while the query is empty -->
+                                    <TextBlock Text="Search clipboard…" FontSize="15"
+                                               Foreground="{StaticResource TextTertiary}"
+                                               VerticalAlignment="Center" IsHitTestVisible="False"
+                                               Visibility="{Binding SearchQuery, Converter={StaticResource EmptyVis}}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
                     </Grid>
 
                     <!-- Settings gear -->
@@ -500,27 +542,6 @@
                                FontSize="13" Foreground="{StaticResource TextSecondary}"
                                TextTrimming="CharacterEllipsis"
                                Visibility="{Binding IsSearching, Converter={StaticResource BoolVis}}" />
-
-                    <!-- Section header "ITEMS (N)" above the search results (PS-7). Hidden
-                         when not searching or when no items matched. -->
-                    <TextBlock DockPanel.Dock="Top" Margin="14,6,14,2"
-                               FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextTertiary}">
-                        <TextBlock.Text>
-                            <MultiBinding Converter="{StaticResource ItemsHeader}">
-                                <Binding Path="Rows" />
-                                <Binding Path="ResultSummary" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <Trigger Property="Text" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
 
                     <!-- Bottom footers: hint (item list) / folder count (root) -->
                     <TextBlock DockPanel.Dock="Bottom" Text="&#x21B5; paste · Ctrl+N new · Del delete"
@@ -546,14 +567,49 @@
                                    Text="{Binding SearchQuery, StringFormat='Nothing found for \&quot;{0}\&quot;'}" />
                     </StackPanel>
 
+                    <!-- PS-26: empty-folder notice (mac ItemListView "No items found in this
+                         folder", 14pt white 40%, 40 below the New item row). Hidden while
+                         searching or while the inline creation form is open. -->
+                    <TextBlock Text="No items found in this folder" FontSize="14" Foreground="#66FFFFFF"
+                               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0"
+                               IsHitTestVisible="False"
+                               Visibility="{Binding HasNoItems, Converter={StaticResource BoolVis}}" />
+
                 <ListBox x:Name="List" Margin="6,0"
                          Background="Transparent" BorderThickness="0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True"
                          VirtualizingPanel.VirtualizationMode="Recycling"
-                         ItemsSource="{Binding Rows}"
+                         VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         ItemsSource="{Binding Source={StaticResource GroupedRows}}"
                          SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}"
                          MouseDoubleClick="OnListDoubleClick">
+                    <!-- Inline "FOLDERS (N)" / "ITEMS (N)" search section headers (PS-63),
+                         styled like the former PS-7 docked ITEMS header. Groups only
+                         exist for rows carrying a SectionLabel, so a header shows only
+                         when its section has results (mac SearchResultView parity). -->
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Margin="8,6,8,2"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextTertiary}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Name}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border CornerRadius="12" Padding="0">
@@ -692,16 +748,22 @@
                                         <!-- Active: inline creation form -->
                                         <StackPanel Margin="12"
                                                     Visibility="{Binding DataContext.IsCreatingNew, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}">
-                                            <!-- Folder: name field -->
-                                            <Grid Visibility="{Binding IsNewFolder, Converter={StaticResource BoolVis}}">
-                                                <TextBox x:Name="NewFolderBox" FontSize="14" Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}"
-                                                         Background="Transparent" BorderThickness="0"
-                                                         IsVisibleChanged="OnNewInputShown"
-                                                         Text="{Binding DataContext.NewInputContent, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                <TextBlock Text="Folder Name…" FontSize="14" Foreground="{StaticResource TextTertiary}"
-                                                           IsHitTestVisible="False" VerticalAlignment="Center"
-                                                           Visibility="{Binding Text, ElementName=NewFolderBox, Converter={StaticResource EmptyVis}}" />
-                                            </Grid>
+                                            <!-- Folder: name field. mac DirectoryListView wraps the active field in a
+                                                 surface box with a focusBorder ring while it is shown (PS-25); on mac the
+                                                 field only exists while focused, so the ring is unconditional. -->
+                                            <Border Background="{StaticResource Surface}" CornerRadius="8" Padding="8"
+                                                    BorderBrush="{StaticResource FocusBorder}" BorderThickness="1"
+                                                    Visibility="{Binding IsNewFolder, Converter={StaticResource BoolVis}}">
+                                                <Grid>
+                                                    <TextBox x:Name="NewFolderBox" FontSize="14" Foreground="{StaticResource TextPrimary}" CaretBrush="{StaticResource Accent}"
+                                                             Background="Transparent" BorderThickness="0"
+                                                             IsVisibleChanged="OnNewInputShown"
+                                                             Text="{Binding DataContext.NewInputContent, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    <TextBlock Text="Folder Name…" FontSize="14" Foreground="{StaticResource TextTertiary}"
+                                                               IsHitTestVisible="False" VerticalAlignment="Center"
+                                                               Visibility="{Binding Text, ElementName=NewFolderBox, Converter={StaticResource EmptyVis}}" />
+                                                </Grid>
+                                            </Border>
                                             <!-- Item: content field first, then memo -->
                                             <StackPanel Visibility="{Binding IsNewItem, Converter={StaticResource BoolVis}}">
                                                 <TextBlock Text="CONTENT" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="2,0,0,4" />

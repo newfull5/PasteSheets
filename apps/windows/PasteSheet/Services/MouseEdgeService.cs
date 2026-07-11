@@ -12,7 +12,7 @@ public sealed class MouseEdgeService
     private readonly WindowPositionService _positionService = new();
 
     public void StartMonitoring(
-        double windowWidthPhysical,
+        double windowWidth,
         Func<bool> isWindowVisible,
         Action onEdgeReached,
         Action onEdgeLeft)
@@ -27,6 +27,10 @@ public sealed class MouseEdgeService
 
             int cursorX = _positionService.CursorX();
             int rightEdge = _positionService.RightEdgeX();
+            // Cursor coords are physical pixels; scale the logical width by the
+            // cursor screen's DPI each tick so the width check stays consistent
+            // across monitors (macOS compares in per-screen logical points).
+            double windowWidthPhysical = windowWidth * _positionService.ActiveScreenDpiScale();
             bool atRightEdge = cursorX >= rightEdge - Constants.MouseEdgeThreshold;
             bool outsideWindow = cursorX < rightEdge - windowWidthPhysical;
             bool visible = isWindowVisible();

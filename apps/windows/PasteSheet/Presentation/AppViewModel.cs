@@ -57,6 +57,9 @@ public sealed class AppViewModel : INotifyPropertyChanged
             // Clearing keeps the current selection — mac resets there too, but that
             // is the PS-31 bug, not the desired behavior.
             bool userEdit = _searchQuery != value && !string.IsNullOrEmpty(value);
+            // PS-23: typing engages the search field (mac: the first character
+            // routes through shouldFocusSearch and focuses the TextField).
+            if (userEdit) _isSearchFocused = true;
             _searchQuery = value;
             OnChanged();
             RebuildRows();
@@ -65,7 +68,22 @@ public sealed class AppViewModel : INotifyPropertyChanged
     }
 
     private int _selectedIndex;
-    public int SelectedIndex { get => _selectedIndex; set { _selectedIndex = value; OnChanged(); SyncSelection(); } }
+    public int SelectedIndex
+    {
+        get => _selectedIndex;
+        set
+        {
+            _selectedIndex = value;
+            // PS-38: while RebuildRows swaps the collection, the ListBox binding
+            // (and the CollectionViewSource currency sync) pushes transient
+            // values (-1 on Clear, 0 on re-add) through here. Swallow them —
+            // RebuildRows restores the real selection and re-raises at the end —
+            // so the view never sees a selection change that mac wouldn't fire.
+            if (_isRebuildingRows) return;
+            OnChanged();
+            SyncSelection();
+        }
+    }
 
     public string CurrentDirectory { get; private set; } = "";
 
@@ -120,6 +138,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
     private bool _autoHideEnabled;
     private int _autoHideTimeout = Constants.DefaultAutoHideTimeout;
     private DispatcherTimer? _autoHideTimer;
+    // Pending mouse-edge hide (mac mouseEdgeAutoHideDelay grace).
+    private DispatcherTimer? _edgeHideTimer;
 
     // MARK: - Computed
 
@@ -169,6 +189,19 @@ public sealed class AppViewModel : INotifyPropertyChanged
     public bool ShowBack =>
         (CurrentView is ViewType.Items or ViewType.Settings) && string.IsNullOrEmpty(SearchQuery);
 
+    /// PS-23: mirrors mac HeaderView's isSearchFocused. The Windows search box
+    /// keeps real keyboard focus whenever the panel is open (PS-19), so raw
+    /// focus can't drive the field's visibility; this flag tracks the mac
+    /// transitions instead: cleared when the panel is shown or an inline
+    /// editor takes over, set when the user types a query, and kept when
+    /// Escape clears the query (mac keeps the field focused, so the empty box
+    /// stays visible with its placeholder).
+    private bool _isSearchFocused;
+
+    /// mac HeaderView: the search field is shown (and the title hidden) when
+    /// the field is focused or the query is non-empty.
+    public bool IsSearchBarVisible => _isSearchFocused || IsSearching;
+
     // MARK: - Search summary / footers (visual chrome)
 
     public bool IsSearching => !string.IsNullOrEmpty(SearchQuery);
@@ -187,6 +220,11 @@ public sealed class AppViewModel : INotifyPropertyChanged
     /// True when a search returned nothing — drives the "No matches" empty state.
     public bool HasNoResults => IsSearching && FilteredDirectories.Count == 0 && FilteredItems.Count == 0;
 
+    /// PS-26: true when the open folder has no items — drives the mac ItemListView
+    /// "No items found in this folder" notice (hidden while the creation form is open).
+    public bool HasNoItems =>
+        CurrentView == ViewType.Items && !IsSearching && FilteredItems.Count == 0 && !IsCreatingNew;
+
     /// Root footer: "N folders · M items".
     public string FolderFooter
     {
@@ -204,15 +242,39 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     private void RebuildRows()
     {
+        // PS-38: Rows.Clear() makes the ListBox push a transient -1 through the
+        // TwoWay SelectedIndex binding (overwriting _selectedIndex before the
+        // rows are re-added), and SyncSelection would then clamp it to 0 —
+        // silently resetting the selection on every rebuild (edit/save/create/
+        // clipboard refresh) and, with selection-tracking scroll, jumping the
+        // viewport to the top. mac leaves selectedIndex untouched on these
+        // rebuilds (no onChange, no scroll), so snapshot the selection before
+        // clearing and restore it once the rows are back; SyncSelection clamps
+        // it into range when the rebuild shrank the list, which keeps the
+        // post-delete clamp working. Restoring the same value never scrolls:
+        // the view ignores re-notifications that don't change the value.
+        int savedIndex = _selectedIndex;
+        _isRebuildingRows = true;
         Rows.Clear();
-        if (CurrentView == ViewType.Settings) { OnChanged(nameof(HeaderTitle)); OnChanged(nameof(ShowBack)); return; }
+        if (CurrentView == ViewType.Settings)
+        {
+            _isRebuildingRows = false;
+            _selectedIndex = savedIndex;
+            OnChanged(nameof(HeaderTitle)); OnChanged(nameof(ShowBack)); OnChanged(nameof(IsSearchBarVisible));
+            return;
+        }
 
         if (!string.IsNullOrEmpty(SearchQuery))
         {
-            foreach (var d in FilteredDirectories)
-                Rows.Add(new RowItem { Kind = RowKind.Directory, Directory = d });
-            foreach (var it in FilteredItems)
-                Rows.Add(new RowItem { Kind = RowKind.Item, Item = it, Vm = this, IsEditing = EditingItemId == it.Id, ShowFolderLabel = true });
+            // PS-63: mac SearchResultView shows a "Folders (N)" section (folder-name
+            // matches) above "Items (N)". Bake the section label into each row; the
+            // ListBox groups by it to render the headers inline.
+            var dirs = FilteredDirectories;
+            var items = FilteredItems;
+            foreach (var d in dirs)
+                Rows.Add(new RowItem { Kind = RowKind.Directory, Directory = d, SectionLabel = $"FOLDERS ({dirs.Count})" });
+            foreach (var it in items)
+                Rows.Add(new RowItem { Kind = RowKind.Item, Item = it, Vm = this, IsEditing = EditingItemId == it.Id, ShowFolderLabel = true, SectionLabel = $"ITEMS ({items.Count})" });
         }
         else if (CurrentView == ViewType.Directories)
         {
@@ -226,15 +288,22 @@ public sealed class AppViewModel : INotifyPropertyChanged
                 Rows.Add(new RowItem { Kind = RowKind.Item, Item = it, Vm = this, IsEditing = EditingItemId == it.Id });
             Rows.Add(new RowItem { Kind = RowKind.NewItem });
         }
+        _isRebuildingRows = false;
+        _selectedIndex = savedIndex; // undo the binding's transient pushes (see above)
         OnChanged(nameof(HeaderTitle));
         OnChanged(nameof(ShowBack));
         OnChanged(nameof(IsSearching));
+        OnChanged(nameof(IsSearchBarVisible));
         OnChanged(nameof(ResultSummary));
         OnChanged(nameof(HasNoResults));
+        OnChanged(nameof(HasNoItems));
         OnChanged(nameof(FolderFooter));
         OnChanged(nameof(ShowItemHint));
         SyncSelection();
     }
+
+    /// True while RebuildRows is swapping the Rows collection; see SelectedIndex.
+    private bool _isRebuildingRows;
 
     private void SyncSelection()
     {
@@ -310,6 +379,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         LoadAutoHideSettings();
         ResetAutoHideTimer();
         _searchQuery = "";
+        _isSearchFocused = false; // mac HeaderView: unfocus search whenever the window (re)opens
         OnChanged(nameof(SearchQuery));
         if (CurrentView == ViewType.Directories) _selectedIndex = 0;
         RebuildRows();
@@ -340,6 +410,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         EditContent = item.Content;
         EditMemo = item.Memo ?? "";
         CurrentDirectory = item.Directory;
+        _isSearchFocused = false; // mac: the edit field takes first responder away from search
         EditingItemId = item.Id;
         OnChanged(nameof(EditContent));
         OnChanged(nameof(EditMemo));
@@ -449,7 +520,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
     // MARK: - Inline "New Folder / New Item" creation (in-place, like macOS)
 
     private bool _isCreatingNew;
-    public bool IsCreatingNew { get => _isCreatingNew; private set { _isCreatingNew = value; OnChanged(); } }
+    public bool IsCreatingNew { get => _isCreatingNew; private set { _isCreatingNew = value; OnChanged(); OnChanged(nameof(HasNoItems)); } }
     private RowKind _newKind = RowKind.NewItem;
 
     public string NewInputContent { get; set; } = "";
@@ -460,6 +531,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
         _newKind = RowKind.NewFolder;
         NewInputContent = ""; NewInputMemo = "";
         OnChanged(nameof(NewInputContent)); OnChanged(nameof(NewInputMemo));
+        _isSearchFocused = false; // mac: the creation field takes first responder away from search
+        OnChanged(nameof(IsSearchBarVisible));
         IsCreatingNew = true;
     }
 
@@ -468,6 +541,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
         _newKind = RowKind.NewItem;
         NewInputContent = ""; NewInputMemo = "";
         OnChanged(nameof(NewInputContent)); OnChanged(nameof(NewInputMemo));
+        _isSearchFocused = false; // mac: the creation field takes first responder away from search
+        OnChanged(nameof(IsSearchBarVisible));
         IsCreatingNew = true;
     }
 
@@ -625,10 +700,16 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     // MARK: - Window
 
+    /// Visibility as the edge monitor and toggle see it. Mirrors macOS
+    /// vm.isWindowVisible: during the edge-hide grace the panel is still on
+    /// screen but already counts as hidden, so reaching the edge (or the
+    /// hotkey) re-shows it instead of being ignored.
+    public bool IsWindowVisibleForEdge => (Host?.IsVisible ?? false) && _edgeHideTimer is null;
+
     public void ToggleWindow()
     {
         if (Host is null) return;
-        if (Host.IsVisible)
+        if (IsWindowVisibleForEdge)
         {
             IsAutoHideMode = false;
             ClearAutoHideTimer();
@@ -636,6 +717,7 @@ public sealed class AppViewModel : INotifyPropertyChanged
         }
         else
         {
+            ClearEdgeHideTimer();
             Host.ShowPanel();
             OnWindowBecameVisible();
         }
@@ -643,7 +725,8 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     public void ShowWindowFromEdge()
     {
-        if (Host is null || Host.IsVisible) return;
+        if (Host is null || IsWindowVisibleForEdge) return;
+        ClearEdgeHideTimer();
         IsAutoHideMode = true;
         Host.ShowPanel();
         OnWindowBecameVisible();
@@ -657,10 +740,25 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     public void HideWindowFromEdge()
     {
-        if (Host is null || !Host.IsVisible || !IsAutoHideMode) return;
+        if (Host is null || !IsWindowVisibleForEdge || !IsAutoHideMode) return;
         IsAutoHideMode = false;
         ClearAutoHideTimer();
-        Host.HidePanel();
+        // mac parity: the panel disappears 0.15s after the cursor leaves, and
+        // without animation (mac hideWindowFromEdge delays orderOut). Reaching
+        // the edge or reopening within the grace cancels the pending hide.
+        _edgeHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Constants.MouseEdgeAutoHideDelayMs) };
+        _edgeHideTimer.Tick += (_, _) =>
+        {
+            ClearEdgeHideTimer();
+            Host.HidePanelImmediate();
+        };
+        _edgeHideTimer.Start();
+    }
+
+    private void ClearEdgeHideTimer()
+    {
+        _edgeHideTimer?.Stop();
+        _edgeHideTimer = null;
     }
 
     public void SaveForegroundBeforeShow(IntPtr ownHandle) =>
@@ -735,7 +833,15 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
         // While editing or creating with a focused text box, let it own all other
         // keys (caret movement, typing) instead of hijacking them for list nav.
-        if (isInput && (EditingItemId is not null || IsCreatingNew)) return false;
+        // PS-51: except Up/Down while editing — mac moves the list selection even
+        // mid-edit and keeps the edit form open (AppViewModel.swift arrow cases
+        // don't check isInput or editingItemId), so let those fall through.
+        // PS-37: same exception during creation — mac cancels the create form and
+        // moves the list selection instead (AppViewModel.swift handleKeyDown).
+        if (isInput && (EditingItemId is not null || IsCreatingNew))
+        {
+            if (key is not (Key.Up or Key.Down)) return false;
+        }
         // Ctrl+N: new item (in a folder) or new folder (at root). Mirrors macOS Cmd+N.
         // PS-19: no !isInput gate — the search box always has focus on Windows, so
         // isInput is always true; Ctrl+N never types a character anyway.
@@ -754,10 +860,12 @@ public sealed class AppViewModel : INotifyPropertyChanged
         switch (key)
         {
             case Key.Down:
+                CancelNew(); // PS-37: mac drops the create form on arrow nav
                 SelectedIndex = (SelectedIndex + 1) % Math.Max(ListCount, 1);
                 ButtonFocusIndex = 0;
                 return true;
             case Key.Up:
+                CancelNew(); // PS-37: mac drops the create form on arrow nav
                 SelectedIndex = (SelectedIndex - 1 + Math.Max(ListCount, 1)) % Math.Max(ListCount, 1);
                 ButtonFocusIndex = 0;
                 return true;

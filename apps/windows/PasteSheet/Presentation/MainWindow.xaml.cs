@@ -10,6 +10,7 @@ using System.Windows.Threading;
 using PasteSheet.App;
 using PasteSheet.Services;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using Point = System.Windows.Point;
 using TextBox = System.Windows.Controls.TextBox;
 
 namespace PasteSheet.Presentation;
@@ -159,10 +160,7 @@ public partial class MainWindow : Window, IWindowHost
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
 
         if (_vm.HandleKey(key, Keyboard.Modifiers, isInput))
-        {
             e.Handled = true;
-            List.ScrollIntoView(List.SelectedItem);
-        }
     }
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -172,7 +170,80 @@ public partial class MainWindow : Window, IWindowHost
             case nameof(AppViewModel.HasModal) when _vm.HasModal && _vm.Modal!.ShowInput:
                 Dispatcher.BeginInvoke(() => { ModalInput.Focus(); ModalInput.SelectAll(); }, DispatcherPriority.Input);
                 break;
+            case nameof(AppViewModel.SelectedIndex):
+                OnSelectedIndexChanged();
+                break;
         }
+    }
+
+    // MARK: - Selected-row scroll tracking (PS-38)
+
+    /// mac parity: every selectedIndex *value change* scrolls the selected row to
+    /// the vertical center of the viewport with a 0.15s ease-in-out animation —
+    /// keyboard, mouse and programmatic changes alike (ItemListView.swift 66-75,
+    /// DirectoryListView.swift 55-64, SearchResultView.swift 81-92:
+    /// `.onChange(of: vm.selectedIndex) { withAnimation(.easeInOut(0.15)) {
+    /// proxy.scrollTo(..., anchor: .center) } }`).
+    private static readonly Duration CenterScrollDuration = new(TimeSpan.FromMilliseconds(150));
+    private ScrollViewer? _listScroll;
+    private int _lastSelectedIndex; // starts at 0, like the VM (onChange semantics: no scroll on appear)
+    private bool _centerQueued;
+
+    /// Animation proxy: ScrollViewer.VerticalOffset has no setter DP, so the
+    /// DoubleAnimation drives this property and each tick is forwarded to
+    /// ScrollToVerticalOffset.
+    private static readonly DependencyProperty ListScrollOffsetProperty =
+        DependencyProperty.Register("ListScrollOffset", typeof(double), typeof(MainWindow),
+            new PropertyMetadata(0.0, (d, e) => ((MainWindow)d)._listScroll?.ScrollToVerticalOffset((double)e.NewValue)));
+
+    private void OnSelectedIndexChanged()
+    {
+        // The VM re-raises SelectedIndex without a value change (SyncSelection,
+        // and the RebuildRows save/restore), and list rebuilds push a transient
+        // -1 through the TwoWay binding; mac's onChange fires on real value
+        // changes only, so filter both out.
+        int index = _vm.SelectedIndex;
+        if (index < 0 || index == _lastSelectedIndex) return;
+        _lastSelectedIndex = index;
+        if (_centerQueued) return;
+        _centerQueued = true;
+        // Defer past binding/layout so the row expansion of the new selection
+        // (wrapped content, action buttons) is measured before centering.
+        Dispatcher.BeginInvoke(() => { _centerQueued = false; CenterSelectedRow(); }, DispatcherPriority.Loaded);
+    }
+
+    private void CenterSelectedRow()
+    {
+        if (List.SelectedItem is not { } selected) return;
+        _listScroll ??= FindScrollViewer(List);
+        if (_listScroll is null) return;
+
+        if (List.ItemContainerGenerator.ContainerFromItem(selected) is not FrameworkElement row)
+        {
+            // Virtualized out of the viewport: realize the container first.
+            List.ScrollIntoView(selected);
+            List.UpdateLayout();
+            if (List.ItemContainerGenerator.ContainerFromItem(selected) is not FrameworkElement realized) return;
+            row = realized;
+        }
+
+        double rowTop = _listScroll.VerticalOffset + row.TranslatePoint(new Point(0, 0), _listScroll).Y;
+        double target = Math.Clamp(rowTop + row.ActualHeight / 2 - _listScroll.ViewportHeight / 2,
+            0, _listScroll.ScrollableHeight);
+        BeginAnimation(ListScrollOffsetProperty,
+            new DoubleAnimation(_listScroll.VerticalOffset, target, CenterScrollDuration)
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut } });
+    }
+
+    private static ScrollViewer? FindScrollViewer(DependencyObject root)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is ScrollViewer sv) return sv;
+            if (FindScrollViewer(child) is { } nested) return nested;
+        }
+        return null;
     }
 
     // MARK: - Mouse / buttons

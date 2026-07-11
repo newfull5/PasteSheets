@@ -13,6 +13,14 @@ public sealed class WindowPositionService
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out POINT lpPoint);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X; public int Y; }
 
@@ -43,4 +51,15 @@ public sealed class WindowPositionService
     }
 
     public int RightEdgeX() => ActiveScreen().Bounds.Right;
+
+    /// DPI scale of the monitor under the cursor. The edge-hide width check
+    /// compares physical cursor pixels, so the logical panel width must be
+    /// scaled by the *cursor's* screen DPI each poll — macOS gets the same
+    /// per-screen consistency for free by comparing in logical points.
+    public double ActiveScreenDpiScale()
+    {
+        GetCursorPos(out var p);
+        var monitor = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
+        return GetDpiForMonitor(monitor, 0, out uint dpiX, out _) == 0 ? dpiX / 96.0 : 1.0;
+    }
 }

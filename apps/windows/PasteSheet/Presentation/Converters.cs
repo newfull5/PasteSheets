@@ -165,27 +165,6 @@ public sealed class TimeoutSegmentConverter : IValueConverter
         throw new NotSupportedException();
 }
 
-/// Builds the "ITEMS (N)" section header shown above search results.
-/// Bound to [Rows, ResultSummary]: ResultSummary changes on every RebuildRows
-/// (empty when not searching) and drives re-evaluation; Rows is enumerated to
-/// count item rows. Returns "" (→ collapsed) when not searching or 0 items,
-/// mirroring the macOS "Items (N)" header that only shows when items exist.
-public sealed class SearchItemsHeaderConverter : IMultiValueConverter
-{
-    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-    {
-        var summary = values.Length > 1 ? values[1] as string : null;
-        if (string.IsNullOrEmpty(summary)) return "";                 // not searching
-        if (values[0] is not System.Collections.IEnumerable rows) return "";
-        int n = 0;
-        foreach (var r in rows) if (r is RowItem { IsItem: true }) n++;
-        return n > 0 ? $"ITEMS ({n})" : "";
-    }
-
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
-        throw new NotSupportedException();
-}
-
 /// Visible when the bound ViewType equals the parameter (e.g. "Settings").
 public sealed class ViewTypeVisibilityConverter : IValueConverter
 {
