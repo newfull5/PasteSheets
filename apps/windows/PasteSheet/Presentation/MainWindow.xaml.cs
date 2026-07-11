@@ -209,6 +209,23 @@ public partial class MainWindow : Window, IWindowHost
         if (RowItemFrom(sender) is { Item: { } item }) _vm.DeleteItem(item.Id);
     }
 
+    private void OnDirectoryContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // The reserved default folder can't be renamed or deleted (mac parity).
+        if (RowItemFrom(sender) is not { Directory: { } dir } || dir.Name == Constants.DefaultDirectory)
+            e.Handled = true;
+    }
+
+    private void OnDirRename(object sender, RoutedEventArgs e)
+    {
+        if (RowItemFrom(sender) is { Directory: { } dir }) _vm.RenameDirectory(dir.Name);
+    }
+
+    private void OnDirDelete(object sender, RoutedEventArgs e)
+    {
+        if (RowItemFrom(sender) is { Directory: { } dir }) _vm.DeleteDirectory(dir.Name);
+    }
+
     private void OnInlineSave(object sender, RoutedEventArgs e) => _vm.SaveEdit();
     private void OnInlineCancel(object sender, RoutedEventArgs e) => _vm.CancelEdit();
 

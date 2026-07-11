@@ -382,7 +382,7 @@
     </Window.Resources>
 
     <!-- Outer rounded window -->
-    <Border Background="{StaticResource Bg}" CornerRadius="16"
+    <Border Background="{StaticResource Bg}" CornerRadius="12"
             BorderBrush="#1AFFFFFF" BorderThickness="1">
         <Grid>
             <Grid Margin="0">
@@ -555,7 +555,16 @@
 
                                 <Grid>
                                     <!-- ============ Directory row ============ -->
-                                    <Grid Margin="12" Visibility="{Binding IsDirectory, Converter={StaticResource BoolVis}}">
+                                    <Grid Margin="12" Background="Transparent"
+                                          Visibility="{Binding IsDirectory, Converter={StaticResource BoolVis}}"
+                                          ContextMenuOpening="OnDirectoryContextMenuOpening">
+                                        <Grid.ContextMenu>
+                                            <!-- PS-28/PS-39: folder Rename/Delete (mac DirectoryListView context menu) -->
+                                            <ContextMenu>
+                                                <MenuItem Header="Rename" Click="OnDirRename" />
+                                                <MenuItem Header="Delete" Click="OnDirDelete" />
+                                            </ContextMenu>
+                                        </Grid.ContextMenu>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
@@ -1041,7 +1050,7 @@
             </Grid>
 
             <!-- Detail overlay -->
-            <Border Background="#8C000000" CornerRadius="16"
+            <Border Background="#8C000000" CornerRadius="12"
                     Visibility="{Binding HasDetail, Converter={StaticResource BoolVis}}"
                     MouseDown="OnDetailBackdrop">
                 <Border Background="{StaticResource Surface}" CornerRadius="12" Margin="19,40"
@@ -1094,7 +1103,7 @@
             </Border>
 
             <!-- Modal overlay -->
-            <Border Background="#8C000000" CornerRadius="16"
+            <Border Background="#8C000000" CornerRadius="12"
                     Visibility="{Binding HasModal, Converter={StaticResource BoolVis}}"
                     MouseDown="OnModalBackdrop">
                 <Border Background="{StaticResource PanelBg}" CornerRadius="12" Padding="20" MaxWidth="320"
