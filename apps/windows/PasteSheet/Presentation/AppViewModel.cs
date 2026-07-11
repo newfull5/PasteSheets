@@ -475,8 +475,10 @@ public sealed class AppViewModel : INotifyPropertyChanged
         else
         {
             var content = NewInputContent.Trim();
-            if (content.Length > 0)
-                CreateItem(content, string.IsNullOrWhiteSpace(NewInputMemo) ? null : NewInputMemo);
+            // PS-22: empty content keeps the form open so a typed memo isn't lost
+            // (mac parity; folders close on empty name there too).
+            if (content.Length == 0) return;
+            CreateItem(content, string.IsNullOrWhiteSpace(NewInputMemo) ? null : NewInputMemo);
         }
         IsCreatingNew = false;
     }
