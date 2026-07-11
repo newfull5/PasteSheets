@@ -741,7 +741,13 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
         // While editing or creating with a focused text box, let it own all other
         // keys (caret movement, typing) instead of hijacking them for list nav.
-        if (isInput && (EditingItemId is not null || IsCreatingNew)) return false;
+        // PS-51: except Up/Down while editing — mac moves the list selection even
+        // mid-edit and keeps the edit form open (AppViewModel.swift arrow cases
+        // don't check isInput or editingItemId), so let those fall through.
+        if (isInput && (EditingItemId is not null || IsCreatingNew))
+        {
+            if (EditingItemId is null || (key != Key.Up && key != Key.Down)) return false;
+        }
         // Ctrl+N: new item (in a folder) or new folder (at root). Mirrors macOS Cmd+N.
         // PS-19: no !isInput gate — the search box always has focus on Windows, so
         // isInput is always true; Ctrl+N never types a character anyway.
