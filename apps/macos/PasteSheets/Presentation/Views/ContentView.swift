@@ -32,7 +32,7 @@ struct ContentView: View {
             .padding(.bottom, 12)
 
             if let modal = vm.modalConfig {
-                ConfirmModalView(config: modal) {
+                ConfirmModalView(config: modal, inputValue: $vm.modalInput) {
                     vm.modalConfig = nil
                 }
             }

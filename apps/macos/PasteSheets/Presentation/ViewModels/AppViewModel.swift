@@ -36,7 +36,14 @@ final class AppViewModel: ObservableObject {
     @Published var editingItemId: Int64?
     @Published var editContent = ""
     @Published var editMemo = ""
-    @Published var modalConfig: ModalConfig?
+    @Published var modalConfig: ModalConfig? {
+        // Seed the modal's live input from the config when it opens, so both the
+        // Enter path (handleKeyDown) and the confirm button read the same current value.
+        didSet { modalInput = modalConfig?.inputValue ?? "" }
+    }
+    /// Live text of a modal's input field, bound by ConfirmModalView. Owned here
+    /// because Enter is intercepted in the ViewModel, not in the SwiftUI view.
+    @Published var modalInput = ""
     @Published var detailItem: PasteItem?
     @Published var buttonFocusIndex = 0
     @Published var isAutoHideMode = false
@@ -493,7 +500,7 @@ final class AppViewModel: ObservableObject {
         if modalConfig != nil {
             if event.keyCode == 36 {
                 let cfg = modalConfig!
-                let input = cfg.showInput ? cfg.inputValue : nil
+                let input = cfg.showInput ? modalInput : nil
                 DispatchQueue.main.async { [weak self] in
                     self?.modalConfig = nil
                     cfg.onConfirm(input)
