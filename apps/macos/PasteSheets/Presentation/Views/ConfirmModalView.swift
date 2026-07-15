@@ -3,13 +3,14 @@ import SwiftUI
 struct ConfirmModalView: View {
     let config: ModalConfig
     let onDismiss: () -> Void
-    @State private var inputValue: String
+    @Binding var inputValue: String
     @State private var appeared = false
+    @FocusState private var inputFocused: Bool
 
-    init(config: ModalConfig, onDismiss: @escaping () -> Void) {
+    init(config: ModalConfig, inputValue: Binding<String>, onDismiss: @escaping () -> Void) {
         self.config = config
+        self._inputValue = inputValue
         self.onDismiss = onDismiss
-        self._inputValue = State(initialValue: config.inputValue)
     }
 
     var body: some View {
@@ -55,6 +56,7 @@ struct ConfirmModalView: View {
                         .textFieldStyle(.plain)
                         .font(.system(size: 14))
                         .foregroundColor(Color(nsColor: Constants.textPrimary))
+                        .focused($inputFocused)
                         .padding(8)
                         .background(Color(nsColor: Constants.surface))
                         .cornerRadius(Constants.radiusControl)
@@ -99,6 +101,11 @@ struct ConfirmModalView: View {
             .scaleEffect(appeared ? 1 : 0.95)
             .opacity(appeared ? 1 : 0)
         }
-        .onAppear { withAnimation(.easeInOut(duration: 0.2)) { appeared = true } }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.2)) { appeared = true }
+            // Auto-focus the input (Windows parity). Focusing a pre-filled field
+            // triggers AppKit's select-all, so typing replaces the old value.
+            if config.showInput { inputFocused = true }
+        }
     }
 }

@@ -36,7 +36,14 @@ final class AppViewModel: ObservableObject {
     @Published var editingItemId: Int64?
     @Published var editContent = ""
     @Published var editMemo = ""
-    @Published var modalConfig: ModalConfig?
+    @Published var modalConfig: ModalConfig? {
+        // Seed the modal's live input from the config when it opens, so both the
+        // Enter path (handleKeyDown) and the confirm button read the same current value.
+        didSet { modalInput = modalConfig?.inputValue ?? "" }
+    }
+    /// Live text of a modal's input field, bound by ConfirmModalView. Owned here
+    /// because Enter is intercepted in the ViewModel, not in the SwiftUI view.
+    @Published var modalInput = ""
     @Published var detailItem: PasteItem?
     @Published var buttonFocusIndex = 0
     @Published var isAutoHideMode = false
@@ -74,6 +81,12 @@ final class AppViewModel: ObservableObject {
     let updateService: UpdateService
 
     weak var panel: NSPanel?
+    // PS-31: true only while showDirectoryView() programmatically restores the
+    // previous folder's selection on Back. HeaderView's searchQuery onChange checks
+    // this and skips its selectedIndex=0 reset, so returning from a searched folder
+    // keeps the restored index instead of jumping to the top. User typing never sets
+    // it, so the first-result reset still works. Read from HeaderView → not private.
+    var isNavigating = false
     // PS-13: set when the auto-focus path pre-fills the first typed character.
     // Collapsed synchronously on the next keyDown once focus reaches the field,
     // so a fast second keystroke can't land on AppKit's select-all and replace it.
@@ -147,6 +160,7 @@ final class AppViewModel: ObservableObject {
     // MARK: - View Navigation
 
     func showDirectoryView() {
+        isNavigating = true
         let lastDir = currentDirectory
         currentView = .directories
         searchQuery = ""
@@ -156,6 +170,10 @@ final class AppViewModel: ObservableObject {
             selectedIndex = 0
         }
         loadDirectories()
+        // Release only after SwiftUI processes this searchQuery change. Its onChange
+        // fires on the next render cycle, so clearing the flag synchronously here would
+        // leave the guard off when the clobbering reset runs. Defer one run-loop hop.
+        DispatchQueue.main.async { [weak self] in self?.isNavigating = false }
     }
 
     func showItemView(directoryName: String) {
@@ -220,8 +238,32 @@ final class AppViewModel: ObservableObject {
         panel.orderOut(nil)
 
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Constants.pasteToggleDelay) { [weak self] in
-            self?.pasteText.execute(text: item.content)
+            let pasted = self?.pasteText.execute(text: item.content) ?? true
+            if !pasted {
+                DispatchQueue.main.async { self?.showAccessibilityPermissionModal() }
+            }
         }
+    }
+
+    /// Paste failed because Accessibility permission is missing. The panel was
+    /// hidden before pasting, so re-show it first, then surface the reason via the
+    /// existing confirm-modal infra with a deep link into System Settings.
+    /// ponytail: no dedicated onboarding screen — a modal on paste-failure is
+    /// enough. Add a first-run onboarding flow only if it becomes a requirement.
+    private func showAccessibilityPermissionModal() {
+        if !isWindowVisible { toggleWindow() }
+        modalConfig = ModalConfig(
+            title: "Accessibility permission required",
+            message: "Paste requires Accessibility permission. Open System Settings to allow PasteSheets.",
+            confirmText: "Open System Settings",
+            cancelText: "Cancel",
+            isDanger: false,
+            showInput: false,
+            inputValue: "",
+            onConfirm: { _ in
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+            }
+        )
     }
 
     func startEdit(_ item: PasteItem) {
@@ -233,6 +275,10 @@ final class AppViewModel: ObservableObject {
 
     func saveEdit() {
         guard let id = editingItemId else { return }
+        // Reject saving whitespace-only content: keep the edit form open and preserve
+        // the existing item. Matches Windows IsNullOrWhiteSpace policy. Trim is used
+        // only for this guard — the value written stays untrimmed (existing behavior).
+        guard !editContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         do {
             try manageItems.updateItem(id: id, content: editContent, directory: currentDirectory, memo: editMemo.isEmpty ? nil : editMemo)
             editingItemId = nil
@@ -478,7 +524,7 @@ final class AppViewModel: ObservableObject {
         if modalConfig != nil {
             if event.keyCode == 36 {
                 let cfg = modalConfig!
-                let input = cfg.showInput ? cfg.inputValue : nil
+                let input = cfg.showInput ? modalInput : nil
                 DispatchQueue.main.async { [weak self] in
                     self?.modalConfig = nil
                     cfg.onConfirm(input)
@@ -505,6 +551,18 @@ final class AppViewModel: ObservableObject {
         if event.keyCode == 45 && hasCmd && !isInput && searchQuery.isEmpty {
             if currentView == .items { shouldStartItemCreation = true; return true }
             if currentView == .directories { shouldStartFolderCreation = true; return true }
+        }
+
+        // Cmd+E: edit the selected item (same path as the Edit button). The
+        // !isInput + searchQuery.isEmpty gate mirrors Cmd+N above: it suppresses
+        // firing while the search field is focused, during inline editing, or in
+        // a new item/folder form (their text fields hold first responder).
+        if event.keyCode == 14 && hasCmd && !isInput && searchQuery.isEmpty && currentView == .items {
+            let items = filteredItems
+            if selectedIndex < items.count {
+                startEdit(items[selectedIndex])
+                return true
+            }
         }
 
         // Arrow keys always navigate, even when search field is focused

@@ -396,6 +396,11 @@ public sealed class AppViewModel : INotifyPropertyChanged
 
     public async void PasteItem(PasteItem item)
     {
+        // This explicit hide bypasses the removed Deactivated handler (PS-34),
+        // so clear auto-hide state here like the other hide paths do — otherwise
+        // a stale armed timer can re-show the panel after the paste.
+        IsAutoHideMode = false;
+        ClearAutoHideTimer();
         // Order matters: hand focus back to the target while we still own the
         // foreground (allowed), THEN hide, THEN paste. Hiding first would drop
         // our foreground and the OS would block the focus handover.
@@ -730,12 +735,6 @@ public sealed class AppViewModel : INotifyPropertyChanged
         IsAutoHideMode = true;
         Host.ShowPanel();
         OnWindowBecameVisible();
-    }
-
-    public void OnPanelHidden()
-    {
-        IsAutoHideMode = false;
-        ClearAutoHideTimer();
     }
 
     public void HideWindowFromEdge()

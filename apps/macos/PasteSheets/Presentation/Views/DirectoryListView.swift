@@ -41,7 +41,8 @@ struct DirectoryListView: View {
                     newFolderRow
                         .id("new-folder-row")
                     HStack {
-                        Text("\(vm.filteredDirectories.count) folders · \(totalItemCount) items")
+                        let folderCount = vm.filteredDirectories.count
+                        Text("\(folderCount) folder\(folderCount == 1 ? "" : "s") · \(totalItemCount) item\(totalItemCount == 1 ? "" : "s")")
                             .font(.system(size: 11))
                             .foregroundColor(Color(nsColor: Constants.textTertiary))
                         Spacer()

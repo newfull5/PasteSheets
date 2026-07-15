@@ -8,7 +8,6 @@ struct SettingsView: View {
     @State private var autoHideTimeout = 5
     @State private var shortcutDisplay = ""
     @State private var autoStartEnabled = true
-    @State private var isRecording = false
     @State private var autoUpdateEnabled = true
     @State private var loaded = false
 
@@ -23,18 +22,16 @@ struct SettingsView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color(nsColor: Constants.textPrimary))
                         Spacer()
-                        Button(action: { isRecording.toggle() }) {
-                            Text(isRecording ? "Press keys..." : shortcutDisplay)
-                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(isRecording ? Color(nsColor: Constants.focusBorder).opacity(0.25) : Color(nsColor: Constants.surface))
-                                .foregroundColor(Color(nsColor: isRecording ? Constants.accentPrimary : Constants.textPrimary))
-                                .overlay(RoundedRectangle(cornerRadius: Constants.radiusControl)
-                                    .stroke(Color(nsColor: Constants.neutralBorder), lineWidth: 1))
-                                .cornerRadius(Constants.radiusControl)
-                        }
-                        .buttonStyle(.plain)
+                        // ponytail: display-only, matches Windows. Real key-capture rebinding → separate ticket.
+                        Text(shortcutDisplay)
+                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Color(nsColor: Constants.surface))
+                            .foregroundColor(Color(nsColor: Constants.textPrimary))
+                            .overlay(RoundedRectangle(cornerRadius: Constants.radiusControl)
+                                .stroke(Color(nsColor: Constants.neutralBorder), lineWidth: 1))
+                            .cornerRadius(Constants.radiusControl)
                     }
                     .padding(12)
                     .background(Color(nsColor: Constants.surface))

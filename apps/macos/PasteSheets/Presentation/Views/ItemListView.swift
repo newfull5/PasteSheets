@@ -56,7 +56,7 @@ struct ItemListView: View {
                 .padding(.vertical, 4)
             }
             .safeAreaInset(edge: .bottom) {
-                Text("↵ paste · ⌘N new · ⌘⌫ delete")
+                Text("↵ paste · ⌘E edit · ⌘N new · ⌘⌫ delete")
                     .font(.system(size: 11))
                     .foregroundColor(Color(nsColor: Constants.textTertiary))
                     .frame(maxWidth: .infinity)
