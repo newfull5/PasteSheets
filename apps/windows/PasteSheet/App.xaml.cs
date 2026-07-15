@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using PasteSheet.Data.DataSources;
 using PasteSheet.Data.Database;
 using PasteSheet.Domain.Repositories;
@@ -34,6 +35,11 @@ public partial class AppEntry : Application
     private readonly HotkeyService _hotkeyService = new();
     private readonly MouseEdgeService _mouseEdgeService = new();
     private readonly AutoStartService _autoStartService = new();
+
+    // PS-29: 24h periodic update re-check, plus the last version we notified
+    // about so a still-pending release isn't announced again on every tick.
+    private DispatcherTimer? _updateTimer;
+    private string? _lastNotifiedVersion;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -81,7 +87,8 @@ public partial class AppEntry : Application
         SetupHotkey(settingsUseCase);
         SetupActivationListener();
         StartBackgroundServices();
-        CheckUpdatesOnStartup();
+        CheckForUpdatesAndNotify();
+        StartPeriodicUpdateChecks();
     }
 
     // Listen for a second launch (which signals SingleInstanceId) and surface
@@ -99,17 +106,32 @@ public partial class AppEntry : Application
             null, Timeout.Infinite, executeOnlyOnce: false);
     }
 
-    private async void CheckUpdatesOnStartup()
+    private async void CheckForUpdatesAndNotify()
     {
         var result = await _vm.CheckUpdateSilentAsync();
-        if (result is { HasUpdate: true } r)
-        {
-            _trayIcon.BalloonTipTitle = "PasteSheet update available";
-            _trayIcon.BalloonTipText = $"Version {r.LatestVersion} is available. Click to download.";
-            _trayIcon.BalloonTipClicked -= OnUpdateBalloonClicked;
-            _trayIcon.BalloonTipClicked += OnUpdateBalloonClicked;
-            _trayIcon.ShowBalloonTip(8000);
-        }
+        if (result is not { HasUpdate: true } r) return;
+        // Same release already announced this session — don't nag on every tick.
+        if (r.LatestVersion == _lastNotifiedVersion) return;
+        _lastNotifiedVersion = r.LatestVersion;
+
+        _trayIcon.BalloonTipTitle = "PasteSheet update available";
+        _trayIcon.BalloonTipText = $"Version {r.LatestVersion} is available. Click to download.";
+        _trayIcon.BalloonTipClicked -= OnUpdateBalloonClicked;
+        _trayIcon.BalloonTipClicked += OnUpdateBalloonClicked;
+        _trayIcon.ShowBalloonTip(8000);
+    }
+
+    // Re-check for updates every 24h so long-running instances still catch new
+    // releases, reusing the startup check + tray balloon + releases-page flow.
+    // ponytail: fixed 24h cadence, auto-download/install intentionally out of
+    // scope, and the last-notified version lives in memory only — promote to a
+    // setting + persisted store if configurable cadence or cross-restart dedup
+    // is ever needed.
+    private void StartPeriodicUpdateChecks()
+    {
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(24) };
+        _updateTimer.Tick += (_, _) => CheckForUpdatesAndNotify();
+        _updateTimer.Start();
     }
 
     private void OnUpdateBalloonClicked(object? sender, EventArgs e) => _vm.OpenReleasesPage();
@@ -171,6 +193,7 @@ public partial class AppEntry : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _updateTimer?.Stop();
         _trayIcon?.Dispose();
         _hotkeyService?.Dispose();
         _activationEvent?.Dispose();
