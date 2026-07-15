@@ -55,8 +55,9 @@ final class DatabaseManager {
             return newPath
         }
 
-        // Move the main DB together with its SQLite WAL/SHM sidecars, as a group.
-        let suffixes = ["", "-wal", "-shm"]
+        // Move the main DB together with its SQLite sidecars (WAL/SHM, plus a
+        // DELETE-mode hot journal left by a crash), as a group.
+        let suffixes = ["", "-wal", "-shm", "-journal"]
         var moved: [(from: String, to: String)] = []
         do {
             for suffix in suffixes {
