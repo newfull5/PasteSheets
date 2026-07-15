@@ -233,6 +233,10 @@ final class AppViewModel: ObservableObject {
 
     func saveEdit() {
         guard let id = editingItemId else { return }
+        // Reject saving whitespace-only content: keep the edit form open and preserve
+        // the existing item. Matches Windows IsNullOrWhiteSpace policy. Trim is used
+        // only for this guard — the value written stays untrimmed (existing behavior).
+        guard !editContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         do {
             try manageItems.updateItem(id: id, content: editContent, directory: currentDirectory, memo: editMemo.isEmpty ? nil : editMemo)
             editingItemId = nil
