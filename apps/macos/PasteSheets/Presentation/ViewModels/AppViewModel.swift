@@ -553,6 +553,18 @@ final class AppViewModel: ObservableObject {
             if currentView == .directories { shouldStartFolderCreation = true; return true }
         }
 
+        // Cmd+E: edit the selected item (same path as the Edit button). The
+        // !isInput + searchQuery.isEmpty gate mirrors Cmd+N above: it suppresses
+        // firing while the search field is focused, during inline editing, or in
+        // a new item/folder form (their text fields hold first responder).
+        if event.keyCode == 14 && hasCmd && !isInput && searchQuery.isEmpty && currentView == .items {
+            let items = filteredItems
+            if selectedIndex < items.count {
+                startEdit(items[selectedIndex])
+                return true
+            }
+        }
+
         // Arrow keys always navigate, even when search field is focused
         switch event.keyCode {
         case 125: // Down
