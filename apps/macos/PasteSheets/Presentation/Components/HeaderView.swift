@@ -49,6 +49,9 @@ struct HeaderView: View {
                         .foregroundColor(Color(nsColor: Constants.textPrimary))
                         .focused($isSearchFocused)
                         .onChange(of: vm.searchQuery) { _ in
+                            // PS-31: skip the reset while Back is restoring the
+                            // previous folder's selection; keep it for user typing.
+                            if vm.isNavigating { return }
                             vm.selectedIndex = 0
                         }
                         .onChange(of: vm.isWindowVisible) { visible in

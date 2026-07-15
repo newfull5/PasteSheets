@@ -74,6 +74,12 @@ final class AppViewModel: ObservableObject {
     let updateService: UpdateService
 
     weak var panel: NSPanel?
+    // PS-31: true only while showDirectoryView() programmatically restores the
+    // previous folder's selection on Back. HeaderView's searchQuery onChange checks
+    // this and skips its selectedIndex=0 reset, so returning from a searched folder
+    // keeps the restored index instead of jumping to the top. User typing never sets
+    // it, so the first-result reset still works. Read from HeaderView → not private.
+    var isNavigating = false
     // PS-13: set when the auto-focus path pre-fills the first typed character.
     // Collapsed synchronously on the next keyDown once focus reaches the field,
     // so a fast second keystroke can't land on AppKit's select-all and replace it.
@@ -147,6 +153,7 @@ final class AppViewModel: ObservableObject {
     // MARK: - View Navigation
 
     func showDirectoryView() {
+        isNavigating = true
         let lastDir = currentDirectory
         currentView = .directories
         searchQuery = ""
@@ -156,6 +163,10 @@ final class AppViewModel: ObservableObject {
             selectedIndex = 0
         }
         loadDirectories()
+        // Release only after SwiftUI processes this searchQuery change. Its onChange
+        // fires on the next render cycle, so clearing the flag synchronously here would
+        // leave the guard off when the clobbering reset runs. Defer one run-loop hop.
+        DispatchQueue.main.async { [weak self] in self?.isNavigating = false }
     }
 
     func showItemView(directoryName: String) {
