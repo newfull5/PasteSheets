@@ -732,12 +732,6 @@ public sealed class AppViewModel : INotifyPropertyChanged
         OnWindowBecameVisible();
     }
 
-    public void OnPanelHidden()
-    {
-        IsAutoHideMode = false;
-        ClearAutoHideTimer();
-    }
-
     public void HideWindowFromEdge()
     {
         if (Host is null || !IsWindowVisibleForEdge || !IsAutoHideMode) return;

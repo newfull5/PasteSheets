@@ -32,7 +32,11 @@ public partial class MainWindow : Window, IWindowHost
             DpiScale = g.DpiX / 96.0;
 
         _vm.PropertyChanged += OnVmPropertyChanged;
-        Deactivated += (_, _) => HideOnFocusLoss();
+        // PS-34: focus loss alone no longer hides the panel (mac parity — the
+        // macOS non-activating panel stays up; only ESC, the auto-hide timer,
+        // mouse-edge exit and the paste flow hide it). ponytail: the activating
+        // panel still steals focus on show; the full WS_EX_NOACTIVATE
+        // non-activating rework lands with PS-19.
         PreviewKeyDown += OnPreviewKeyDown;
         SourceInitialized += (_, _) =>
         {
@@ -142,14 +146,6 @@ public partial class MainWindow : Window, IWindowHost
             NativeMethods.DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
         }
         catch { /* pre-Win11: falls back to square corners */ }
-    }
-
-    private void HideOnFocusLoss()
-    {
-        if (!IsVisible) return;
-        if (_vm.HasModal) return; // keep open while a modal is up
-        _vm.OnPanelHidden();
-        HidePanel();
     }
 
     // MARK: - Keyboard
