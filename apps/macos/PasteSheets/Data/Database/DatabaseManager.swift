@@ -9,16 +9,24 @@ final class DatabaseManager {
 
     private init() {}
 
+    private var appSupportDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    }
+
+    // Canonical location: PasteSheet subfolder (matches the Windows app's %APPDATA%\PasteSheet).
     var databasePath: String {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return dir.appendingPathComponent("paste_sheets.db").path
+        appSupportDirectory.appendingPathComponent("PasteSheet/paste_sheets.db").path
+    }
+
+    // Pre-migration location: directly under Application Support.
+    private var legacyDatabasePath: String {
+        appSupportDirectory.appendingPathComponent("paste_sheets.db").path
     }
 
     func initialize() throws {
-        let dir = (databasePath as NSString).deletingLastPathComponent
-        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let path = try resolveDatabasePath()
 
-        guard sqlite3_open(databasePath, &db) == SQLITE_OK else {
+        guard sqlite3_open(path, &db) == SQLITE_OK else {
             throw DatabaseError.openFailed(String(cString: sqlite3_errmsg(db)))
         }
 
@@ -29,6 +37,41 @@ final class DatabaseManager {
         try execute(DatabaseSchema.insertDefaultMouseEdge)
         try migrateIfNeeded()
         try execute(DatabaseSchema.syncOrphanDirectories)
+    }
+
+    /// Ensures the DB directory exists and relocates a legacy root-level DB into the
+    /// PasteSheet subfolder. Returns the path that should actually be opened.
+    /// If any file move fails, rolls back and keeps the legacy path — preserving data is top priority.
+    private func resolveDatabasePath() throws -> String {
+        let fm = FileManager.default
+        let newPath = databasePath
+        let oldPath = legacyDatabasePath
+
+        let newDir = (newPath as NSString).deletingLastPathComponent
+        try fm.createDirectory(atPath: newDir, withIntermediateDirectories: true)
+
+        // Only migrate when a legacy DB exists and no new DB is present yet.
+        guard fm.fileExists(atPath: oldPath), !fm.fileExists(atPath: newPath) else {
+            return newPath
+        }
+
+        // Move the main DB together with its SQLite WAL/SHM sidecars, as a group.
+        let suffixes = ["", "-wal", "-shm"]
+        var moved: [(from: String, to: String)] = []
+        do {
+            for suffix in suffixes {
+                let src = oldPath + suffix
+                guard fm.fileExists(atPath: src) else { continue }
+                let dst = newPath + suffix
+                try fm.moveItem(atPath: src, toPath: dst)
+                moved.append((from: dst, to: src))
+            }
+            return newPath
+        } catch {
+            // Roll back any partial move so the legacy path stays intact, then fall back to it.
+            for m in moved { try? fm.moveItem(atPath: m.from, toPath: m.to) }
+            return oldPath
+        }
     }
 
     private func migrateIfNeeded() throws {
