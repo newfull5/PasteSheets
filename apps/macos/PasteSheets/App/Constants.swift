@@ -6,7 +6,7 @@ enum Constants {
     // MARK: - Legacy tokens (Svelte/Tauri theme — migrate per-screen)
     static let accentColor = NSColor(red: 220/255, green: 220/255, blue: 87/255, alpha: 1.0)
     static let subTextColor = NSColor(red: 0x68/255, green: 0x74/255, blue: 0x8d/255, alpha: 1.0)
-    static let bgContainer = NSColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 0.98)
+    static let bgContainer = NSColor(red: 18/255, green: 18/255, blue: 18/255, alpha: 1.0)
     static let modalDangerColor = NSColor(red: 0xef/255, green: 0x44/255, blue: 0x44/255, alpha: 1.0)
     static let detailModalBg = NSColor(red: 0x1e/255, green: 0x1e/255, blue: 0x1e/255, alpha: 1.0)
     static let detailContentBg = NSColor(red: 0x1a/255, green: 0x1a/255, blue: 0x1a/255, alpha: 1.0)
