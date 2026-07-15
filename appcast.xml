@@ -6,6 +6,20 @@
         <description>PasteSheet Updates</description>
         <language>en</language>
         <item>
+            <title>Version 0.6.8</title>
+            <description><![CDATA[<ul><li>Passwords copied from password managers are no longer saved to history</li><li>New: press Cmd+E to edit the selected item</li><li>Paste now explains when Accessibility permission is missing, with a shortcut to System Settings</li><li>Fix: returning from a folder opened via search keeps your previous selection</li><li>Fix: the rename dialog applies the typed name on Enter and focuses the input automatically</li><li>Fix: editing an item to empty content no longer saves an empty item</li><li>Database moved into its own folder (migrated automatically); only one instance runs at a time</li><li>Polish: fully opaque panel background, display-only shortcut setting, correct singular/plural folder counts</li></ul>]]></description>
+            <sparkle:version>25</sparkle:version>
+            <sparkle:shortVersionString>0.6.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <pubDate>수, 15  7월 2026 17:51:43 +0900</pubDate>
+            <enclosure
+                url="https://github.com/newfull5/PasteSheet/releases/download/v0.6.8/PasteSheet_0.6.8_universal.dmg"
+                length="1855806"
+                type="application/octet-stream"
+                sparkle:edSignature="YYkwqqUkFkXIbQC/PNDlbfPyJfF0vtVuAgb6PsM2eIOtx1BIoTPYKRj9WZT0Jkm4FFAp3m1XMSBdYMi1ohqkAg=="
+            />
+        </item>
+        <item>
             <title>Version 0.6.4</title>
             <description><![CDATA[<ul><li>Fix: fast typing no longer drops the first search character</li><li>Faster, smoother search — results render lazily on the first keystroke</li><li>Fix: huge clipboard items no longer slow down opening the panel (capture capped, rows show a preview)</li></ul>]]></description>
             <sparkle:version>24</sparkle:version>
