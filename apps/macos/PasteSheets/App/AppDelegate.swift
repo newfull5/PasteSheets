@@ -16,6 +16,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updateService = UpdateService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Single-instance guard: if another copy is already running (e.g. launched
+        // from Terminal), hand focus back to it and quit before any service init so
+        // the two processes never fight over the global hotkey or the SQLite file.
+        // ponytail: process-enumeration guard; upgrade path = posix file lock if a race ever matters.
+        let others = NSRunningApplication
+            .runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier!)
+            .filter { $0.processIdentifier != NSRunningApplication.current.processIdentifier }
+        if let existing = others.first {
+            existing.activate()
+            NSApp.terminate(nil)
+            return
+        }
+
         NSApp.setActivationPolicy(.accessory)
 
         do { try DatabaseManager.shared.initialize() }
