@@ -238,8 +238,32 @@ final class AppViewModel: ObservableObject {
         panel.orderOut(nil)
 
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Constants.pasteToggleDelay) { [weak self] in
-            self?.pasteText.execute(text: item.content)
+            let pasted = self?.pasteText.execute(text: item.content) ?? true
+            if !pasted {
+                DispatchQueue.main.async { self?.showAccessibilityPermissionModal() }
+            }
         }
+    }
+
+    /// Paste failed because Accessibility permission is missing. The panel was
+    /// hidden before pasting, so re-show it first, then surface the reason via the
+    /// existing confirm-modal infra with a deep link into System Settings.
+    /// ponytail: no dedicated onboarding screen — a modal on paste-failure is
+    /// enough. Add a first-run onboarding flow only if it becomes a requirement.
+    private func showAccessibilityPermissionModal() {
+        if !isWindowVisible { toggleWindow() }
+        modalConfig = ModalConfig(
+            title: "Accessibility permission required",
+            message: "Paste requires Accessibility permission. Open System Settings to allow PasteSheets.",
+            confirmText: "Open System Settings",
+            cancelText: "Cancel",
+            isDanger: false,
+            showInput: false,
+            inputValue: "",
+            onConfirm: { _ in
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+            }
+        )
     }
 
     func startEdit(_ item: PasteItem) {
