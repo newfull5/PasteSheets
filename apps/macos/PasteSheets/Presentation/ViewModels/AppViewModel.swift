@@ -506,6 +506,10 @@ final class AppViewModel: ObservableObject {
         let fr = panel?.firstResponder
         let isInput = fr is NSTextView || fr is NSTextField
         let hasCmd = event.modifierFlags.contains(.command)
+        // True while an inline create/edit form owns the keyboard. Arrows and Enter
+        // must reach the text view (caret movement, newline) instead of driving the
+        // list — otherwise Enter pastes the selected item into the previous app.
+        let isFormInput = isInput && (isCreatingItem || isCreatingFolder || editingItemId != nil)
 
         // Escape chain
         if event.keyCode == 53 { // Escape
@@ -547,6 +551,21 @@ final class AppViewModel: ObservableObject {
             }
         }
 
+        // The app has no main menu (accessory policy), so the standard editing key
+        // equivalents never reach the focused text view. Route them by hand.
+        if isInput && hasCmd, let ch = event.charactersIgnoringModifiers?.lowercased() {
+            var sel: Selector?
+            switch ch {
+            case "a": sel = Selector(("selectAll:"))
+            case "c": sel = Selector(("copy:"))
+            case "v": sel = Selector(("paste:"))
+            case "x": sel = Selector(("cut:"))
+            case "z": sel = Selector((event.modifierFlags.contains(.shift) ? "redo:" : "undo:"))
+            default: break
+            }
+            if let sel, NSApp.sendAction(sel, to: nil, from: nil) { return true }
+        }
+
         // Cmd+N: new item (inside a folder) or new folder (at root)
         if event.keyCode == 45 && hasCmd && !isInput && searchQuery.isEmpty {
             if currentView == .items { shouldStartItemCreation = true; return true }
@@ -565,7 +584,10 @@ final class AppViewModel: ObservableObject {
             }
         }
 
-        // Arrow keys always navigate, even when search field is focused
+        // Arrow keys always navigate, except inside a create/edit form where they
+        // move the caret.
+        if isFormInput, [123, 124, 125, 126].contains(event.keyCode) { return false }
+
         switch event.keyCode {
         case 125: // Down
             isCreatingFolder = false
@@ -608,7 +630,7 @@ final class AppViewModel: ObservableObject {
         }
 
         // Enter (always handle, even when search field focused)
-        if event.keyCode == 36 && (editingItemId == nil || !isInput) {
+        if event.keyCode == 36 && !isFormInput {
             if !searchQuery.isEmpty {
                 executeSearchAction()
                 return true
@@ -619,7 +641,6 @@ final class AppViewModel: ObservableObject {
                     showItemView(directoryName: dirs[selectedIndex].name)
                     return true
                 }
-                if isCreatingFolder && isInput { return false }
                 // Otherwise activate the inline TextField for folder creation.
                 shouldStartFolderCreation = true
                 return true
@@ -630,7 +651,6 @@ final class AppViewModel: ObservableObject {
                     executeItemAction()
                     return true
                 }
-                if isCreatingItem && isInput { return false }
                 // Otherwise activate the inline creation form for a new item.
                 shouldStartItemCreation = true
                 return true
