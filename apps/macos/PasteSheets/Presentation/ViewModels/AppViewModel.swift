@@ -164,6 +164,7 @@ final class AppViewModel: ObservableObject {
         let lastDir = currentDirectory
         currentView = .directories
         searchQuery = ""
+        closeInlineForms()
         if let idx = directories.firstIndex(where: { $0.name == lastDir }) {
             selectedIndex = idx
         } else {
@@ -182,12 +183,22 @@ final class AppViewModel: ObservableObject {
         searchQuery = ""
         selectedIndex = 0
         buttonFocusIndex = 0
+        closeInlineForms()
         loadHistory()
     }
 
     func showSettingsView() {
         currentView = .settings
         searchQuery = ""
+        closeInlineForms()
+    }
+
+    /// Navigating away abandons any open inline create/edit form — otherwise it is
+    /// still open when the user comes back to the folder.
+    private func closeInlineForms() {
+        isCreatingItem = false
+        isCreatingFolder = false
+        editingItemId = nil
     }
 
     // MARK: - Data Loading
@@ -552,18 +563,22 @@ final class AppViewModel: ObservableObject {
         }
 
         // The app has no main menu (accessory policy), so the standard editing key
-        // equivalents never reach the focused text view. Route them by hand.
-        if isInput && hasCmd, let ch = event.charactersIgnoringModifiers?.lowercased() {
+        // equivalents never reach the focused text view. Send them straight down the
+        // responder chain — NSApp.sendAction can't be used here because the panel is
+        // non-activating, so NSApp has no key window to start the lookup from.
+        // Keyed on keyCode, not characters: with a Hangul input source Cmd+V reports
+        // "ㅍ" for charactersIgnoringModifiers, so matching on the character never fires.
+        if let fr, hasCmd {
             var sel: Selector?
-            switch ch {
-            case "a": sel = Selector(("selectAll:"))
-            case "c": sel = Selector(("copy:"))
-            case "v": sel = Selector(("paste:"))
-            case "x": sel = Selector(("cut:"))
-            case "z": sel = Selector((event.modifierFlags.contains(.shift) ? "redo:" : "undo:"))
+            switch event.keyCode {
+            case 0: sel = Selector(("selectAll:"))   // A
+            case 8: sel = Selector(("copy:"))        // C
+            case 9: sel = Selector(("paste:"))       // V
+            case 7: sel = Selector(("cut:"))         // X
+            case 6: sel = Selector((event.modifierFlags.contains(.shift) ? "redo:" : "undo:")) // Z
             default: break
             }
-            if let sel, NSApp.sendAction(sel, to: nil, from: nil) { return true }
+            if let sel, fr.tryToPerform(sel, with: nil) { return true }
         }
 
         // Cmd+N: new item (inside a folder) or new folder (at root)

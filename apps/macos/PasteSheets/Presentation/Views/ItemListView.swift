@@ -76,8 +76,23 @@ struct ItemListView: View {
             .onChange(of: vm.shouldStartItemCreation) { start in
                 if start {
                     isCreating = true
-                    contentFieldFocused = true
+                    memoFieldFocused = true
                     vm.shouldStartItemCreation = false
+                    // Cmd+N can fire with the list scrolled anywhere, so bring the
+                    // form into view. Deferred one turn: the row only reaches its
+                    // expanded height after this update renders.
+                    vm.selectedIndex = vm.filteredItems.count
+                    Task { @MainActor in
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            proxy.scrollTo("new-item-row", anchor: .bottom)
+                        }
+                    }
+                }
+            }
+            .onChange(of: vm.isCreatingItem) { creating in
+                if !creating {
+                    newMemo = ""
+                    newContent = ""
                 }
             }
             .onChange(of: vm.shouldSaveNewItem) { save in
@@ -167,6 +182,6 @@ struct ItemListView: View {
         .overlay(RoundedRectangle(cornerRadius: Constants.radiusControl)
             .stroke(Color(nsColor: Constants.neutralBorder), style: StrokeStyle(lineWidth: 1, dash: [5])))
         .contentShape(Rectangle())
-        .onTapGesture { isCreating = true; contentFieldFocused = true }
+        .onTapGesture { isCreating = true; memoFieldFocused = true }
     }
 }
