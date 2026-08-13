@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /Users/saechan/PasteSheets/apps/macos && python3 - <<'EOF'\\nimport re\\np = \\\"PasteSheets.xcodeproj/project.pbxproj\\\"\\ns = open(p).read()\\nBUILD, FILE = \\\"0A72E5310000000000000001\\\", \\\"0...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<stdin>\", line 18, in <module>\nAssertionError: 6",
+  "timestamp": "2026-08-13T07:46:21.875Z",
+  "retry_count": 1
+}

@@ -17,9 +17,28 @@ final class PasteTextUseCase {
     /// the user was prompted to grant it); true once the paste was simulated.
     @discardableResult
     func execute(text: String) -> Bool {
+        execute { self.clipboardService.setText(text) }
+    }
+
+    /// PS-72: an image row carries a file name, so its payload has to be read back
+    /// from disk before the clipboard is loaded.
+    @discardableResult
+    func execute(item: PasteItem) -> Bool {
+        switch item.kind {
+        case .text:
+            return execute(text: item.content)
+        case .image:
+            // File gone (pruned, or the folder was cleared): nothing to paste, but
+            // this is not a permission failure — don't send the user to Settings.
+            guard let png = ImageStore.shared.data(for: item.content) else { return true }
+            return execute { self.clipboardService.setImagePNG(png) }
+        }
+    }
+
+    private func execute(loadClipboard: () -> Void) -> Bool {
         guard keySimService.ensureAccessibilityPermission() else { return false }
 
-        clipboardService.setText(text)
+        loadClipboard()
         previousAppService.restoreAndWaitUntilFrontmost(
             timeout: Constants.pasteFocusTimeout,
             pollInterval: Constants.pasteFocusPollInterval

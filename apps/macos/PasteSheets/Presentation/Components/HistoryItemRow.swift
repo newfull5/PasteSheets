@@ -87,13 +87,7 @@ struct HistoryItemRow: View {
             }
         }
 
-        // PS-15: only the display layer is truncated. Paste/edit still use full content.
-        highlightedText(snippetForSearch(String(item.content.prefix(1500))),
-                        baseColor: Color(nsColor: isSelected ? Constants.textPrimary : Constants.textSecondary))
-            .font(.system(size: 14))
-            .lineLimit(isSelected ? 15 : 1)
-            .truncationMode(.tail)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        contentPreview
 
         if isSelected {
             Text(formatDate(item.createdAt))
@@ -108,6 +102,42 @@ struct HistoryItemRow: View {
                 deleteButton
             }
             .padding(.top, 8)
+        }
+    }
+
+    /// PS-72: image rows show a thumbnail where text rows show their snippet. The
+    /// collapsed height matches a single line of text so mixed lists stay even.
+    @ViewBuilder
+    private var contentPreview: some View {
+        if item.kind == .image {
+            HStack {
+                if let thumbnail = ImageStore.shared.thumbnail(for: item.content) {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity,
+                               maxHeight: isSelected ? Constants.imageRowExpandedHeight : Constants.imageRowCollapsedHeight,
+                               alignment: .leading)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(nsColor: Constants.neutralBorder), lineWidth: 0.5))
+                } else {
+                    // The file was pruned or the store moved — the row is stale, say so
+                    // rather than rendering an empty box.
+                    Label("Image unavailable", systemImage: "photo")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(nsColor: Constants.textTertiary))
+                }
+                Spacer(minLength: 0)
+            }
+        } else {
+            // PS-15: only the display layer is truncated. Paste/edit still use full content.
+            highlightedText(snippetForSearch(String(item.content.prefix(1500))),
+                            baseColor: Color(nsColor: isSelected ? Constants.textPrimary : Constants.textSecondary))
+                .font(.system(size: 14))
+                .lineLimit(isSelected ? 15 : 1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -148,21 +178,27 @@ struct HistoryItemRow: View {
             .overlay(RoundedRectangle(cornerRadius: Constants.radiusControl)
                 .stroke(Color(nsColor: Constants.neutralBorder), lineWidth: 0.5))
 
+        // PS-72: an image's content is its file name, not something to type over —
+        // the form drops to a memo-only editor and shows the image as context.
         Text("CONTENT")
             .font(.system(size: 11))
             .tracking(0.4)
             .foregroundColor(Color(nsColor: Constants.textTertiary))
             .padding(.top, 2)
-        TextEditor(text: $editContent)
-            .font(.system(size: 14))
-            .foregroundColor(Color(nsColor: Constants.textPrimary))
-            .scrollContentBackground(.hidden)
-            .frame(minHeight: 120)
-            .padding(8)
-            .background(Color(nsColor: Constants.surface))
-            .cornerRadius(Constants.radiusControl)
-            .overlay(RoundedRectangle(cornerRadius: Constants.radiusControl)
-                .stroke(Color(nsColor: Constants.neutralBorder), lineWidth: 0.5))
+        if item.kind == .image {
+            contentPreview
+        } else {
+            TextEditor(text: $editContent)
+                .font(.system(size: 14))
+                .foregroundColor(Color(nsColor: Constants.textPrimary))
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 120)
+                .padding(8)
+                .background(Color(nsColor: Constants.surface))
+                .cornerRadius(Constants.radiusControl)
+                .overlay(RoundedRectangle(cornerRadius: Constants.radiusControl)
+                    .stroke(Color(nsColor: Constants.neutralBorder), lineWidth: 0.5))
+        }
 
         HStack(spacing: 8) {
             Spacer()

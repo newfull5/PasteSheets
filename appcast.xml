@@ -6,6 +6,20 @@
         <description>PasteSheet Updates</description>
         <language>en</language>
         <item>
+            <title>Version 0.6.10</title>
+            <description><![CDATA[<ul><li>Screenshots and copied images are now saved to history, shown as thumbnails, and pasted back as real images</li><li>Identical images are deduplicated; clips marked concealed/transient stay excluded</li><li>Fix: Cmd+A / Cmd+C / Cmd+V / Cmd+X / Cmd+Z work inside item forms again — they were dead under a Hangul input source</li><li>Fix: Cmd+N scrolls the new-item form into view instead of leaving it below the fold</li><li>Fix: leaving and re-entering a folder closes the inline create/edit form</li></ul>]]></description>
+            <sparkle:version>27</sparkle:version>
+            <sparkle:shortVersionString>0.6.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 13 Aug 2026 16:56:00 +0900</pubDate>
+            <enclosure
+                url="https://github.com/newfull5/PasteSheet/releases/download/v0.6.10/PasteSheet_0.6.10_universal.dmg"
+                length="1903817"
+                type="application/octet-stream"
+                sparkle:edSignature="RqnxbEqykP8kDNBs/k1B+GFZUB81HR7kQBJFN27KSfhYypRB73mFz2N+FVnSb0uRyGm/5iew9iNHfSFdkpZoCw=="
+            />
+        </item>
+        <item>
             <title>Version 0.6.9</title>
             <description><![CDATA[<ul><li>Restored the MEMO / CONTENT field order in the new-item and edit forms</li><li>Fix: Enter inside the content editor inserts a newline instead of pasting the selected item into the previous app</li><li>Fix: Cmd+A / Cmd+C / Cmd+V / Cmd+X / Cmd+Z now work inside the text fields</li><li>Fix: arrow keys move the caret inside a form instead of closing it</li></ul>]]></description>
             <sparkle:version>26</sparkle:version>

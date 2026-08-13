@@ -80,6 +80,9 @@ final class DatabaseManager {
         if !columns.contains("memo") {
             try execute(DatabaseSchema.addMemoColumn)
         }
+        if !columns.contains("kind") {
+            try execute(DatabaseSchema.addKindColumn)
+        }
     }
 
     private func queryColumnNames(table: String) throws -> [String] {

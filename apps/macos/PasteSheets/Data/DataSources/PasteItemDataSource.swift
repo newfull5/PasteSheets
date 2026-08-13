@@ -3,8 +3,8 @@ import SQLite3
 
 protocol PasteItemDataSource {
     func fetchAll() throws -> [PasteItemDTO]
-    func insert(content: String, directory: String, memo: String?) throws -> Int64
-    func update(id: Int64, content: String, directory: String, memo: String?) throws
+    func insert(content: String, directory: String, memo: String?, kind: String) throws -> Int64
+    func update(id: Int64, content: String, directory: String, memo: String?, kind: String) throws
     func delete(id: Int64) throws
     func findByContent(_ content: String, directory: String) throws -> PasteItemDTO?
     func countByDirectory(_ directory: String) throws -> Int64
@@ -14,24 +14,26 @@ protocol PasteItemDataSource {
 final class PasteItemDataSourceImpl: PasteItemDataSource {
     private let db = DatabaseManager.shared
 
+    private static let columns = "id, content, directory, created_at, memo, kind"
+
     func fetchAll() throws -> [PasteItemDTO] {
         try db.query(
-            "SELECT id, content, directory, created_at, memo FROM paste_sheets ORDER BY created_at DESC",
+            "SELECT \(Self.columns) FROM paste_sheets ORDER BY created_at DESC",
             mapper: Self.mapRow
         )
     }
 
-    func insert(content: String, directory: String, memo: String?) throws -> Int64 {
+    func insert(content: String, directory: String, memo: String?, kind: String) throws -> Int64 {
         try db.executeReturningId(
-            "INSERT INTO paste_sheets (content, directory, memo) VALUES (?1, ?2, ?3)",
-            params: [content, directory, memo]
+            "INSERT INTO paste_sheets (content, directory, memo, kind) VALUES (?1, ?2, ?3, ?4)",
+            params: [content, directory, memo, kind]
         )
     }
 
-    func update(id: Int64, content: String, directory: String, memo: String?) throws {
+    func update(id: Int64, content: String, directory: String, memo: String?, kind: String) throws {
         try db.execute(
-            "UPDATE paste_sheets SET content = ?1, directory = ?2, memo = ?3, created_at = CURRENT_TIMESTAMP WHERE id = ?4",
-            params: [content, directory, memo, id]
+            "UPDATE paste_sheets SET content = ?1, directory = ?2, memo = ?3, kind = ?4, created_at = CURRENT_TIMESTAMP WHERE id = ?5",
+            params: [content, directory, memo, kind, id]
         )
     }
 
@@ -41,7 +43,7 @@ final class PasteItemDataSourceImpl: PasteItemDataSource {
 
     func findByContent(_ content: String, directory: String) throws -> PasteItemDTO? {
         try db.queryOne(
-            "SELECT id, content, directory, created_at, memo FROM paste_sheets WHERE content = ?1 AND directory = ?2 LIMIT 1",
+            "SELECT \(Self.columns) FROM paste_sheets WHERE content = ?1 AND directory = ?2 LIMIT 1",
             params: [content, directory],
             mapper: Self.mapRow
         )
@@ -77,7 +79,8 @@ final class PasteItemDataSourceImpl: PasteItemDataSource {
             content: String(cString: sqlite3_column_text(stmt, 1)),
             directory: String(cString: sqlite3_column_text(stmt, 2)),
             createdAt: String(cString: sqlite3_column_text(stmt, 3)),
-            memo: sqlite3_column_text(stmt, 4).map { String(cString: $0) }
+            memo: sqlite3_column_text(stmt, 4).map { String(cString: $0) },
+            kind: sqlite3_column_text(stmt, 5).map { String(cString: $0) } ?? "text"
         )
     }
 }

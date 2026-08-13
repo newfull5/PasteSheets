@@ -162,6 +162,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Background Services
 
     private func startBackgroundServices() {
+        // PS-72: one sweep per launch drops PNGs whose rows are gone (deleted, or
+        // trimmed by the per-directory cap).
+        vm.pruneOrphanImages()
+
         vm.clipboardMonitor.startMonitoring { [weak self] in
             self?.vm.onClipboardUpdated()
         }

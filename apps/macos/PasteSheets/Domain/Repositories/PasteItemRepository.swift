@@ -2,8 +2,8 @@ import Foundation
 
 protocol PasteItemRepository {
     func getAllItems() throws -> [PasteItem]
-    func createItem(content: String, directory: String, memo: String?) throws -> Int64
-    func updateItem(id: Int64, content: String, directory: String, memo: String?) throws
+    func createItem(content: String, directory: String, memo: String?, kind: ItemKind) throws -> Int64
+    func updateItem(id: Int64, content: String, directory: String, memo: String?, kind: ItemKind) throws
     func deleteItem(id: Int64) throws
     func findByContent(_ content: String, directory: String) throws -> PasteItem?
     func cleanupOldItems(directory: String, maxCount: Int64) throws
@@ -20,12 +20,12 @@ final class PasteItemRepositoryImpl: PasteItemRepository {
         try dataSource.fetchAll().map(PasteItem.init)
     }
 
-    func createItem(content: String, directory: String, memo: String?) throws -> Int64 {
-        try dataSource.insert(content: content, directory: directory, memo: memo)
+    func createItem(content: String, directory: String, memo: String?, kind: ItemKind) throws -> Int64 {
+        try dataSource.insert(content: content, directory: directory, memo: memo, kind: kind.rawValue)
     }
 
-    func updateItem(id: Int64, content: String, directory: String, memo: String?) throws {
-        try dataSource.update(id: id, content: content, directory: directory, memo: memo)
+    func updateItem(id: Int64, content: String, directory: String, memo: String?, kind: ItemKind) throws {
+        try dataSource.update(id: id, content: content, directory: directory, memo: memo, kind: kind.rawValue)
     }
 
     func deleteItem(id: Int64) throws {

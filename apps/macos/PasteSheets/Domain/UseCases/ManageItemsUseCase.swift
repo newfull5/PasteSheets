@@ -11,12 +11,12 @@ final class ManageItemsUseCase {
         try repo.getAllItems()
     }
 
-    func createItem(content: String, directory: String, memo: String?) throws -> Int64 {
-        try repo.createItem(content: content, directory: directory, memo: memo)
+    func createItem(content: String, directory: String, memo: String?, kind: ItemKind = .text) throws -> Int64 {
+        try repo.createItem(content: content, directory: directory, memo: memo, kind: kind)
     }
 
-    func updateItem(id: Int64, content: String, directory: String, memo: String?) throws {
-        try repo.updateItem(id: id, content: content, directory: directory, memo: memo)
+    func updateItem(id: Int64, content: String, directory: String, memo: String?, kind: ItemKind = .text) throws {
+        try repo.updateItem(id: id, content: content, directory: directory, memo: memo, kind: kind)
     }
 
     func deleteItem(id: Int64) throws {
