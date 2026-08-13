@@ -34,6 +34,9 @@ final class AppViewModel: ObservableObject {
     @Published var allItems: [PasteItem] = []
     @Published var currentDirectory = ""
     @Published var editingItemId: Int64?
+    /// PS-72: the row being edited, kept so saveEdit knows its kind. An image row's
+    /// content is a file name the form never renders and must not overwrite.
+    private var editingItem: PasteItem?
     @Published var editContent = ""
     @Published var editMemo = ""
     @Published var modalConfig: ModalConfig? {
@@ -199,6 +202,7 @@ final class AppViewModel: ObservableObject {
         isCreatingItem = false
         isCreatingFolder = false
         editingItemId = nil
+        editingItem = nil
     }
 
     // MARK: - Data Loading
@@ -241,6 +245,17 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Item Actions
 
+    /// PS-72: drops stored PNGs no row points at any more. Rows also vanish through
+    /// the per-directory cap's bulk DELETE, so this runs once at launch against the
+    /// full reference set rather than trying to refcount each individual delete.
+    func pruneOrphanImages() {
+        // Fetched here rather than read off `allItems`: a failed load would look like
+        // "nothing is referenced" and wipe every stored image.
+        guard let items = try? manageItems.getAllItems() else { return }
+        let referenced = Set(items.filter { $0.kind == .image }.map(\.content))
+        ImageStore.shared.pruneOrphans(referenced: referenced)
+    }
+
     func pasteItem(_ item: PasteItem) {
         guard let panel else { return }
         isWindowVisible = false
@@ -249,7 +264,7 @@ final class AppViewModel: ObservableObject {
         panel.orderOut(nil)
 
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Constants.pasteToggleDelay) { [weak self] in
-            let pasted = self?.pasteText.execute(text: item.content) ?? true
+            let pasted = self?.pasteText.execute(item: item) ?? true
             if !pasted {
                 DispatchQueue.main.async { self?.showAccessibilityPermissionModal() }
             }
@@ -279,6 +294,7 @@ final class AppViewModel: ObservableObject {
 
     func startEdit(_ item: PasteItem) {
         editingItemId = item.id
+        editingItem = item
         editContent = item.content
         editMemo = item.memo ?? ""
         currentDirectory = item.directory
@@ -286,6 +302,23 @@ final class AppViewModel: ObservableObject {
 
     func saveEdit() {
         guard let id = editingItemId else { return }
+        // PS-72: an image row's content is its PNG file name and the form never shows
+        // it — only the memo is editable, so the file name is written back unchanged.
+        let kind = editingItem?.kind ?? .text
+        if kind == .image {
+            guard let original = editingItem else { return }
+            do {
+                try manageItems.updateItem(id: id, content: original.content, directory: currentDirectory,
+                                           memo: editMemo.isEmpty ? nil : editMemo, kind: .image)
+                editingItemId = nil
+                editingItem = nil
+                loadHistory()
+                loadDirectories()
+            } catch {
+                NSLog("Failed to save edit: \(error)")
+            }
+            return
+        }
         // Reject saving whitespace-only content: keep the edit form open and preserve
         // the existing item. Matches Windows IsNullOrWhiteSpace policy. Trim is used
         // only for this guard — the value written stays untrimmed (existing behavior).
@@ -293,6 +326,7 @@ final class AppViewModel: ObservableObject {
         do {
             try manageItems.updateItem(id: id, content: editContent, directory: currentDirectory, memo: editMemo.isEmpty ? nil : editMemo)
             editingItemId = nil
+            editingItem = nil
             loadHistory()
             loadDirectories()
         } catch {
@@ -302,6 +336,7 @@ final class AppViewModel: ObservableObject {
 
     func cancelEdit() {
         editingItemId = nil
+        editingItem = nil
     }
 
     func createItem(content: String, memo: String?) {
@@ -315,7 +350,9 @@ final class AppViewModel: ObservableObject {
     }
 
     func deleteItem(id: Int64) {
-        let preview = allItems.first(where: { $0.id == id })?.content
+        let item = allItems.first(where: { $0.id == id })
+        // An image row's content is a SHA-256 file name — show something readable instead.
+        let preview = item?.kind == .image ? (item?.memo ?? "Image") : item?.content
         modalConfig = ModalConfig(
             title: "Delete item",
             message: "This item will be permanently deleted.",

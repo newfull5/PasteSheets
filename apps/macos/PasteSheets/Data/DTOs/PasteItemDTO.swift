@@ -6,4 +6,5 @@ struct PasteItemDTO {
     let directory: String
     let createdAt: String
     let memo: String?
+    let kind: String
 }

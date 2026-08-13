@@ -18,6 +18,43 @@ struct DetailModalView: View {
         return item.createdAt
     }
 
+    /// PS-72: the detail view is the only place an image is shown at full size —
+    /// everywhere else it is a capped thumbnail.
+    @ViewBuilder
+    private var detailBody: some View {
+        if item.kind == .image {
+            if let image = NSImage(contentsOf: ImageStore.shared.url(for: item.content)) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .padding(24)
+            } else {
+                Text("Image unavailable")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(nsColor: Constants.textTertiary))
+                    .padding(24)
+            }
+        } else {
+            Text(item.content)
+                .font(.system(size: 14, design: .monospaced))
+                .foregroundColor(Color(red: 207/255, green: 207/255, blue: 200/255))
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func copyToClipboard() {
+        NSPasteboard.general.clearContents()
+        if item.kind == .image, let png = ImageStore.shared.data(for: item.content) {
+            NSPasteboard.general.setData(png, forType: .png)
+        } else {
+            NSPasteboard.general.setString(item.content, forType: .string)
+        }
+    }
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
@@ -31,10 +68,7 @@ struct DetailModalView: View {
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(Color(nsColor: Constants.textPrimary))
                         Spacer()
-                        Button(action: {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(item.content, forType: .string)
-                        }) {
+                        Button(action: copyToClipboard) {
                             HStack(spacing: 4) {
                                 Image(systemName: "doc.on.doc")
                                     .font(.system(size: 11))
@@ -63,13 +97,7 @@ struct DetailModalView: View {
                     Divider().background(Color(nsColor: Constants.dividerColor))
 
                     ScrollView {
-                        Text(item.content)
-                            .font(.system(size: 14, design: .monospaced))
-                            .foregroundColor(Color(red: 207/255, green: 207/255, blue: 200/255))
-                            .lineSpacing(6)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(24)
-                            .textSelection(.enabled)
+                        detailBody
                     }
                     .background(Color(nsColor: Constants.panelBg))
 
@@ -78,7 +106,7 @@ struct DetailModalView: View {
                     HStack(spacing: 8) {
                         Text(formattedCreatedAt)
                         Text("·")
-                        Text("\(item.content.count) chars")
+                        Text(item.kind == .image ? "Image" : "\(item.content.count) chars")
                         Spacer()
                     }
                     .font(.system(size: 11))

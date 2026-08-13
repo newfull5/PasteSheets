@@ -18,6 +18,7 @@
 		3CDBFC78BA20F0DAC18DD3B8 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 378D3475D7EF49D216DF22ED /* Constants.swift */; };
 		3DBA5EBD1A1231D1A9B97766 /* DirectoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100900CDADE9DFFF1900F43C /* DirectoryListView.swift */; };
 		448D47D81BB711E2B012A0C3 /* AutoStartService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3335489D81E8B2A7D35B126E /* AutoStartService.swift */; };
+		0A72E5310000000000000001 /* ImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A72E5310000000000000002 /* ImageStore.swift */; };
 		503270A02A2F9320DFB4698E /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA3C8E022282932A00AC182 /* UpdateService.swift */; };
 		56D2BA9D7ED3898E99BFE7FD /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A6042FCCD44ED74DBD034 /* HeaderView.swift */; };
 		5804B9C84AB1FB315615DEC6 /* ItemListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B06293DB1AAE5A46C3CEAA11 /* ItemListView.swift */; };
@@ -68,6 +69,7 @@
 		2C2C7CAC63F8D5F89037107A /* SettingsUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsUseCase.swift; sourceTree = "<group>"; };
 		2FFD537D30DBEAC36466060F /* PasteItemDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteItemDataSource.swift; sourceTree = "<group>"; };
 		3335489D81E8B2A7D35B126E /* AutoStartService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoStartService.swift; sourceTree = "<group>"; };
+		0A72E5310000000000000002 /* ImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStore.swift; sourceTree = "<group>"; };
 		378D3475D7EF49D216DF22ED /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		395651D47D993F57FE42C6C0 /* ClipboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardService.swift; sourceTree = "<group>"; };
 		3AB8AF72A0AA1EE60D903E6E /* DirectoryInfoDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryInfoDTO.swift; sourceTree = "<group>"; };
@@ -241,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				3335489D81E8B2A7D35B126E /* AutoStartService.swift */,
+				0A72E5310000000000000002 /* ImageStore.swift */,
 				395651D47D993F57FE42C6C0 /* ClipboardService.swift */,
 				DE6D51F23B021AE66C0B2AA4 /* HotkeyService.swift */,
 				4C33DC8D319F6A8002566D2E /* KeySimulationService.swift */,
@@ -384,6 +387,7 @@
 				ECB3242C21E494D0A34B5B15 /* AppDelegate.swift in Sources */,
 				77EC32C2ED887E35A27AE50B /* AppViewModel.swift in Sources */,
 				448D47D81BB711E2B012A0C3 /* AutoStartService.swift in Sources */,
+				0A72E5310000000000000001 /* ImageStore.swift in Sources */,
 				9399BD3A699F34ACB8391B45 /* ClipboardMonitorUseCase.swift in Sources */,
 				085A38249899BC2D69B81011 /* ClipboardService.swift in Sources */,
 				BA1C2013A50BA7B31D005632 /* ConfirmModalView.swift in Sources */,

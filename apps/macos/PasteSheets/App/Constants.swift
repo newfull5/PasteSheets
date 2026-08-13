@@ -49,6 +49,12 @@ enum Constants {
     static let mouseEdgeAutoHideDelay: TimeInterval = 0.15
     static let maxItemsPerDirectory: Int64 = 30
     static let maxClipboardTextLength = 1_000_000
+    // PS-72: a 10 MB PNG covers any screen at Retina resolution; past that the clip is
+    // more likely a pasted photo/artboard than something worth keeping in history.
+    static let maxClipboardImageBytes = 10_000_000
+    static let imageThumbnailMaxDimension: CGFloat = 400
+    static let imageRowCollapsedHeight: CGFloat = 28
+    static let imageRowExpandedHeight: CGFloat = 220
     static let defaultDirectory = "Clipboard"
     static let defaultShortcut = "CommandOrControl+Shift+V"
     static let defaultAutoHideTimeout = 5

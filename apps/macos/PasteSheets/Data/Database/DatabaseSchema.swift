@@ -16,6 +16,7 @@ enum DatabaseSchema {
             content     TEXT NOT NULL,
             directory   TEXT NOT NULL,
             memo        TEXT,
+            kind        TEXT NOT NULL DEFAULT 'text',
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (directory) REFERENCES directories(name)
         )
@@ -38,6 +39,11 @@ enum DatabaseSchema {
 
     static let addMemoColumn = """
         ALTER TABLE paste_sheets ADD COLUMN memo TEXT
+        """
+
+    // PS-72: 'text' | 'image'. An image row's content is the PNG file name in ImageStore.
+    static let addKindColumn = """
+        ALTER TABLE paste_sheets ADD COLUMN kind TEXT NOT NULL DEFAULT 'text'
         """
 
     static let syncOrphanDirectories = """
